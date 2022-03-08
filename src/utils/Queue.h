@@ -14,7 +14,7 @@ class Queue {
       _data = new T[capacity];
       _capacity = capacity;
       _firstIndex = 0;
-      _lastIndex = -1;
+      _lastIndex = capacity -1;
       _length = 0;
     }
 
@@ -83,12 +83,14 @@ T Queue<T>::last()
 
 template <class T>
 bool Queue<T>::isEmpty() {
-  return _length == 0;
+  return ((_length == 0) && ((_lastIndex+1)%_capacity == _firstIndex));
+  // return ((_lastIndex+1)%_capacity == _firstIndex);
 }
 
 template <class T>
 bool Queue<T>::isFull() {
-  return _length >= _capacity;
+  return ((_length >= _capacity) && ((_lastIndex+1)%_capacity == _firstIndex));
+  // return ((_lastIndex+1)%_capacity == _firstIndex);
 }
 
 template <class T>

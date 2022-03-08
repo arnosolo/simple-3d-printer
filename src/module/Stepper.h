@@ -20,11 +20,10 @@ private:
   uint8_t _dirPin = 0;
   bool _reverseDir = false;
 public:
-  float stepsPerUnit; // steps/mm
   int32_t deltaError = 0;
-  int32_t position = 0;
+  int32_t posInSteps = 0;
   bool needAdvance;
-  static block_t currentBlock;
+  static block_t* curBlock;
   
   Stepper(
     uint8_t dirPin, 
@@ -33,15 +32,16 @@ public:
     bool reverseDir, 
     float stepsPerUnit
   );
-  // Stepper(uint8_t dirPin, uint8_t stepPin);
   // ~Stepper();
   static void init();
+  static void isr();
+
   void enable();
   void disable();
   void move(uint32_t steps, int16_t speed);
   void moveOneStep();
-  void setStepPinHigh();
-  void setStepPinLow();
+  void setHigh();
+  void setLow();
   void setDir(int8_t dir);
 };
 

@@ -24,6 +24,13 @@ typedef struct {
 } uint32_xyze_t;
 
 typedef struct {
+  int32_t x;
+  int32_t y;
+  int32_t z;
+  int32_t e;
+} int32_xyze_t;
+
+typedef struct {
   int8_t x;
   int8_t y;
   int8_t z;
@@ -39,6 +46,7 @@ typedef struct {
 
   double_xyze_t targetPos; // mm
   double_xyze_t startPos; // mm
+  int32_xyze_t startStep; // mm
   double_xyze_t deltaPos; // mm
   double distance; // mm
   double stepsPerMm; // steps/mm
@@ -50,7 +58,7 @@ typedef struct {
 
   // double feedSpeed; // mm/s
   double nominalSpeed; // mm/s
-  double nominalRate; // steps/sec
+  uint32_t nominalRate; // steps/sec
   double acceleration; // steps/sec^2
   // double accelerateRate; // steps/sec^2
   uint32_t accelerateRate; // steps/sec^2
@@ -65,6 +73,7 @@ typedef struct {
   double decelerateTime; // s
   double entrySpeed; // mm/s
   double exitSpeed; // mm/s
+  double speed; // mm/s
   double interval; // s
   double accelerationStepsMm; // steps/sec^2
 

@@ -13,7 +13,7 @@
 #define REVERSE_E_DIR true
 
 #define STEPS_PER_UNIT_X 80
-#define STEPS_PER_UNIT_Y 80
+#define STEPS_PER_UNIT_Y 79.6
 #define STEPS_PER_UNIT_Z 400
 // #define STEPS_PER_UNIT_Z1 400
 #define STEPS_PER_UNIT_E 400
@@ -30,18 +30,17 @@
 /******** Planner ********/
 #define BLOCK_BUFFER_SIZE 16
 
-// if total steps need be advanced is too few(5 steps), drop this block
-#define MIN_EVENT_COUNT 5
-
 // Minimum planner junction speed
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/s
 
-#define MAX_ACCELERATION_X  2000 // mm/s^2
-#define MAX_ACCELERATION_Y  2000 // mm/s^2
-#define MAX_ACCELERATION_Z   100 // mm/s^2
+#define MAX_ACCELERATION_X 1000 // mm/s^2
+#define MAX_ACCELERATION_Y 1000 // mm/s^2
+#define MAX_ACCELERATION_Z 40   // mm/s^2
 #define MAX_ACCELERATION_E 10000 // mm/s^2
 
-#define DEFAULT_XJERK 10.0 // mm/s
-#define DEFAULT_YJERK 10.0
-#define DEFAULT_ZJERK  0.3
-#define DEFAULT_EJERK  5.0
+#define MAX_FEEDRATE_X 80 // mm/s
+#define MAX_FEEDRATE_Y 80 // mm/s
+#define MAX_FEEDRATE_Z 4  // mm/s
+#define MAX_FEEDRATE_E 25 // mm/s
+
+#define MIN_STEPS_PER_SEGMENT 6

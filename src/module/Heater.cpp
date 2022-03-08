@@ -1,5 +1,6 @@
 #include "Heater.h"
-#include "thermistor/thermistor.h"
+// #include "thermistor/thermistor.h"
+#include "thermistor/thermistor_1.h"
 
 Heater::Heater(uint8_t tempSensorPin, uint8_t heaterPin)
 {
@@ -18,9 +19,9 @@ void Heater::init(uint16_t updateCycle) {
 
   // Pin8 analogWrite very noisy!
   // so I try to use the Timer4 to generate pwm for hotbed.
-  TCCR4A = 0; // set entire TCCR1A register to 0
-  TCCR4B = 0; // same for TCCR1B
-  TCNT4 = 0;  // initialize counter value to 0
+  // TCCR4A = 0; // set entire TCCR1A register to 0
+  // TCCR4B = 0; // same for TCCR1B
+  // TCNT4 = 0;  // initialize counter value to 0
   // Fast PWM 10-bit mode, top value is 1023, base on Table 17-2 of datasheet
   // Table 16-9. Clock Select Bit Description
   // Table 17-4. Compare Output Mode, Fast PWM
@@ -104,36 +105,37 @@ uint16_t Heater::calculatePid() {
 }
 
 void Heater::update() {
-  if(_heaterPin == 8) {
-    // OCR4A = ((int)calculatePid()) << 3;
-    uint16_t pwmDuty = calculatePid();
-    switch (pwmDuty)
-    {
-    case 0:
-      digitalWrite(_heaterPin, 0);
-      break;
-    case 255:
-      digitalWrite(_heaterPin, 1);
-      break;
-    default:
-      // Fast PWM 10-bit mode
-      TCCR4A |= (1 << WGM41) | (1 << WGM40) | (1 << COM4A1) | (1 << COM4B1)| (1 << COM4C1);
-      TCCR4B |= (1 << CS40) | (1 << CS42); // 1024 prescaler
-      OCR4C = pwmDuty << 2;
-      break;
-    } 
-  } else {
-    analogWrite(_heaterPin, (int)calculatePid());
-  }
+  // if(_heaterPin == 8) {
+  //   // OCR4A = ((int)calculatePid()) << 3;
+  //   uint16_t pwmDuty = calculatePid();
+  //   switch (pwmDuty)
+  //   {
+  //   case 0:
+  //     digitalWrite(_heaterPin, 0);
+  //     break;
+  //   case 255:
+  //     digitalWrite(_heaterPin, 1);
+  //     break;
+  //   default:
+  //     // Fast PWM 10-bit mode
+  //     TCCR4A |= (1 << WGM41) | (1 << WGM40) | (1 << COM4A1) | (1 << COM4B1)| (1 << COM4C1);
+  //     TCCR4B |= (1 << CS40) | (1 << CS42); // 1024 prescaler
+  //     OCR4C = pwmDuty << 2;
+  //     break;
+  //   } 
+  // } else {
+  //   analogWrite(_heaterPin, (int)calculatePid());
+  // }
+  analogWrite(_heaterPin, (int)calculatePid());
 }
 
 float Heater::readTemp() {
   float curTempVal = 0;
-  for (uint16_t i = 0; i < 10; i++)
+  for (uint16_t i = 0; i < 5; i++)
   {
     curTempVal += analogRead(_tempSensorPin);
   }
-  curTempVal /= 10;
+  curTempVal /= 5;
 
   for (uint16_t i = 0; i < sizeof(value2TempTable) / sizeof(value2temp_t); i++)
   {

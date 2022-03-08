@@ -6,7 +6,7 @@ Endstop::Endstop(uint8_t pin) {
 }
 
 bool Endstop::isTriggered() {
-  if(digitalRead(_pin) == LOW) {
+  if(digitalRead(_pin) == HIGH) {
     return true;
   } else {
     return false;
