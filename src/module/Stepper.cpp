@@ -38,7 +38,7 @@ void Stepper::disable() {
  */
 void Stepper::move(uint32_t steps, int16_t speed){
   // Set dir
-  if(speed > 0 && !_reverseDir || speed < 0 && _reverseDir) {
+  if((speed > 0 && !_reverseDir) || (speed < 0 && _reverseDir)) {
     digitalWrite(_dirPin, 1);
   } else {
     digitalWrite(_dirPin, 0);
@@ -127,8 +127,8 @@ void Stepper::init(){
 
   sei(); // allow interrupts
 
-  Serial.print("Stepper inited, Timer1 was used ");
-  // Serial.println(OCR1A);
+  Serial.print("Stepper inited, Timer5 was used, OCR5A = ");
+  Serial.println(OCR5A);
 }
 
 void Stepper::isr() {

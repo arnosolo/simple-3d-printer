@@ -20,6 +20,7 @@ public:
   float rawPwmDuty = 0;
   float pwmDuty = 0;
   Heater(uint8_t tempSensorPin, uint8_t heaterPin);
+  // Heater();
   // ~Heater();
   bool setTargetTemp(float temp);
   void setPid(float p, float i, float d);

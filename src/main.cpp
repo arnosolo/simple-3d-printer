@@ -38,7 +38,7 @@ Endstop yMin(PIN_Y_MIN);
 Endstop zMin(PIN_Z_MIN);
 Endstop z1Min(PIN_Z1_MIN);
 
-void printFileItem(String str, int i) {
+void printStr(String str, int i) {
   Serial.print("Option ");
   Serial.print(i);
   Serial.print(": ");
@@ -46,6 +46,7 @@ void printFileItem(String str, int i) {
 };
 
 void getFileList(Array<String> *fileList) {
+  fileList->clean();
   File root = SD.open("/");
   while (true) {
     File item =  root.openNextFile();
@@ -66,7 +67,7 @@ void setup() {
   setting.maxAcceleration.e = MAX_ACCELERATION_E;
   
   Serial.begin(115200);
-  Heater::init(200);
+  Heater::init(150);
   Stepper::init();
   hotend.setPid(HOTEND_KP, HOTEND_KI, HOTEND_KD);
   hotbed.setPid(HOTBED_KP, HOTBED_KI, HOTBED_KD);
@@ -94,7 +95,7 @@ void setup() {
   motorE.disable();
 }
 
-// Task 1/3: Motion control isr
+// Motor control isr
 ISR(TIMER5_COMPA_vect) {
   static uint32_t interval = 1000;
   static uint8_t stepLoops = 1;
@@ -216,13 +217,12 @@ ISR(TIMER5_COMPA_vect) {
   OCR5A = (interval * 2UL); // us * 16 - 1
 }
 
-// Task 2/3: Temperature control isr
+// Heater isr
 ISR(TIMER3_COMPA_vect) {
   hotbed.update();
   hotend.update();
 }
 
-// Task 3/3: Parse and execute gcode
 void loop() {
   // Check endstops
   if (xMin.isTriggered()) {
@@ -277,28 +277,28 @@ void loop() {
             case 0:
             case 1:
               {
-                Serial.print("Parse result: G1 ");
-                if(gcode.hasX){
-                  Serial.print("X");
-                  Serial.print(gcode.X);
-                } 
-                if(gcode.hasY){
-                  Serial.print(" Y");
-                  Serial.print(gcode.Y);
-                } 
-                if(gcode.hasZ){
-                  Serial.print(" Z");
-                  Serial.print(gcode.Z);
-                } 
-                if(gcode.hasE){
-                  Serial.print(" E");
-                  Serial.print(gcode.E);
-                } 
-                if(gcode.hasF){
-                  Serial.print(" F");
-                  Serial.print(gcode.F);
-                }
-                Serial.println();
+                // Serial.print("Parse result: G1 ");
+                // if(gcode.hasX){
+                //   Serial.print("X");
+                //   Serial.print(gcode.X);
+                // } 
+                // if(gcode.hasY){
+                //   Serial.print(" Y");
+                //   Serial.print(gcode.Y);
+                // } 
+                // if(gcode.hasZ){
+                //   Serial.print(" Z");
+                //   Serial.print(gcode.Z);
+                // } 
+                // if(gcode.hasE){
+                //   Serial.print(" E");
+                //   Serial.print(gcode.E);
+                // } 
+                // if(gcode.hasF){
+                //   Serial.print(" F");
+                //   Serial.print(gcode.F);
+                // }
+                // Serial.println();
 
                 motorX.enable();
                 motorY.enable();
@@ -308,7 +308,15 @@ void loop() {
 
                 static double_xyze_t startPos = {};
                 static double_xyze_t targetPos = {};
-                startPos = targetPos;
+                static double_xyze_t prevStartPos = {};
+                static double_xyze_t prevTargetPos = {};
+                static bool prevSegmentUsed = true;
+                if(prevSegmentUsed) {
+                  startPos = prevTargetPos;
+                } else {
+                  startPos = prevStartPos;
+                }
+
                 if(absoluteMode) {
                   if(gcode.hasX) targetPos.x = gcode.X;
                   if(gcode.hasY) targetPos.y = gcode.Y;
@@ -329,8 +337,10 @@ void loop() {
                 double nominalSpeed = gcode.hasF ? (gcode.F / 60) : (gcode.prevFeedSpeed / 60);
                 double acceleration = gcode.prevAcceleration;
 
-                Planner::planBufferLine(startPos, targetPos, nominalSpeed, acceleration, &setting);
+                prevSegmentUsed = Planner::planBufferLine(startPos, targetPos, nominalSpeed, acceleration, &setting);
 
+                prevStartPos = startPos;
+                prevTargetPos = targetPos;
                 if (gcode.hasF) Gcode::prevFeedSpeed = gcode.F;
                 if (gcode.hasX) Gcode::prevX = gcode.X;
                 if (gcode.hasY) Gcode::prevY = gcode.Y;
@@ -445,7 +455,7 @@ void loop() {
                   if(z1Min.isTriggered()) motorZ1.moveOneStep();
                   delayMicroseconds(interval);
                 }
-                delay(15);
+                delay(30);
                 while(zMin.isTriggered() || z1Min.isTriggered()) {
                   if(zMin.isTriggered()) motorZ.moveOneStep();
                   if(z1Min.isTriggered()) motorZ1.moveOneStep();
@@ -501,7 +511,7 @@ void loop() {
             // Print file list
             getFileList(&sdFileList);
             Serial.println("Send M23 I4 to print option4");
-            sdFileList.forEach(printFileItem);
+            sdFileList.forEach(printStr);
             break;
 
           // M23 - Select SD file
@@ -635,7 +645,7 @@ void loop() {
           default:
             Serial.print(gcode.cmdtype);
             Serial.print(gcode.cmdnum);
-            Serial.println("still not implement yet");
+            Serial.println(" still not implement yet");
             break;
           }
 

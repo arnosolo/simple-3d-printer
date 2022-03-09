@@ -13,11 +13,12 @@ private:
 public:
   static Queue<block_t> blockQueue;
   Planner();
-  static void planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, double nominalSpeed, double acceleration, Setting* setting);
+  static bool planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, double nominalSpeed, double acceleration, Setting* setting);
 
   static void calculateTrapezoid(block_t* block);
   static void reverseCheck();
   static void forwardCheck();
+  static void speedLimitCheck();
   static void recalculateTrapezoids();
 
   static uint32_t getMax(uint32_xyze_t data);

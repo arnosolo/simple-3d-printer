@@ -20,8 +20,8 @@
 
 /******** Heaters ********/
 #define HOTEND_KP 4.7
-#define HOTEND_KI 0.42
-#define HOTEND_KD 16
+#define HOTEND_KI 0.4
+#define HOTEND_KD 20
 
 #define HOTBED_KP 4.0
 #define HOTBED_KI 1.0
@@ -33,13 +33,13 @@
 // Minimum planner junction speed
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/s
 
-#define MAX_ACCELERATION_X 1000 // mm/s^2
-#define MAX_ACCELERATION_Y 1000 // mm/s^2
+#define MAX_ACCELERATION_X 500 // mm/s^2
+#define MAX_ACCELERATION_Y 500 // mm/s^2
 #define MAX_ACCELERATION_Z 40   // mm/s^2
 #define MAX_ACCELERATION_E 10000 // mm/s^2
 
-#define MAX_FEEDRATE_X 80 // mm/s
-#define MAX_FEEDRATE_Y 80 // mm/s
+#define MAX_FEEDRATE_X 70 // mm/s
+#define MAX_FEEDRATE_Y 70 // mm/s
 #define MAX_FEEDRATE_Z 4  // mm/s
 #define MAX_FEEDRATE_E 25 // mm/s
 

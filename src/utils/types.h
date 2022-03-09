@@ -44,42 +44,26 @@ typedef struct {
   bool needRecalculate;
   uint32_t id;
 
-  double_xyze_t targetPos; // mm
-  double_xyze_t startPos; // mm
-  int32_xyze_t startStep; // mm
-  double_xyze_t deltaPos; // mm
   double distance; // mm
   double stepsPerMm; // steps/mm
   int8_xyze_t dir; // -1 or 1
+  int32_xyze_t startStep; // mm
   uint32_xyze_t steps; // steps
   uint32_t stepEventCount; // steps
   uint32_t stepEventCompleted; // steps
-
-
-  // double feedSpeed; // mm/s
-  double nominalSpeed; // mm/s
-  uint32_t nominalRate; // steps/sec
-  double acceleration; // steps/sec^2
-  // double accelerateRate; // steps/sec^2
-  uint32_t accelerateRate; // steps/sec^2
   uint32_t accelerateUntil;
   uint32_t decelerateAfter;
-  uint32_t entryRate; // steps/sec
-  uint32_t exitRate; // steps/sec
-  // double speedRate; // steps/s
-  uint32_t speedRate; // steps/s
-
-  double accelerateTime; // s
-  double decelerateTime; // s
+  
   double entrySpeed; // mm/s
   double exitSpeed; // mm/s
-  double speed; // mm/s
-  double interval; // s
-  double accelerationStepsMm; // steps/sec^2
+  double nominalSpeed; // mm/s
+  uint32_t entryRate; // steps/s
+  uint32_t exitRate; // steps/s
+  uint32_t nominalRate; // steps/s
+  uint32_t speedRate; // steps/s
 
-  double_xyze_t unitVector;
-  double_xyze_t averageSpeedPerAxis;
-  
+  double acceleration; // steps/sec^2
+  uint32_t accelerateRate; // steps/sec^2
 } block_t;
 
 #endif

@@ -18,6 +18,12 @@ class Array {
       delete[] _startAddress;
     }
 
+    void clean() {
+      _length = 0;
+      delete[] _startAddress;
+      _startAddress = new T[_capacity];
+    }
+
     /**
     * @brief  Overload '[]', so we can access 5th item of array like arr[5]
     * @param  index index of array
