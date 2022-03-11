@@ -10,33 +10,34 @@
 #define REVERSE_Y_DIR false
 #define REVERSE_Z_DIR true
 #define REVERSE_Z1_DIR true
-#define REVERSE_E_DIR true
+#define REVERSE_E_DIR false
 
 #define STEPS_PER_UNIT_X 80
-#define STEPS_PER_UNIT_Y 79.6
+// #define STEPS_PER_UNIT_Y 79.6
+#define STEPS_PER_UNIT_Y 80
 #define STEPS_PER_UNIT_Z 400
 // #define STEPS_PER_UNIT_Z1 400
 #define STEPS_PER_UNIT_E 400
 
 /******** Heaters ********/
 #define HOTEND_KP 4.7
-#define HOTEND_KI 0.4
-#define HOTEND_KD 20
+#define HOTEND_KI 0.42
+#define HOTEND_KD 16
 
 #define HOTBED_KP 4.0
 #define HOTBED_KI 1.0
 #define HOTBED_KD 0
 
 /******** Planner ********/
-#define BLOCK_BUFFER_SIZE 16
+#define BLOCK_BUFFER_SIZE 20
 
 // Minimum planner junction speed
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/s
 
-#define MAX_ACCELERATION_X 500 // mm/s^2
-#define MAX_ACCELERATION_Y 500 // mm/s^2
+#define MAX_ACCELERATION_X 600 // mm/s^2
+#define MAX_ACCELERATION_Y 600 // mm/s^2
 #define MAX_ACCELERATION_Z 40   // mm/s^2
-#define MAX_ACCELERATION_E 10000 // mm/s^2
+#define MAX_ACCELERATION_E 5000 // mm/s^2
 
 #define MAX_FEEDRATE_X 70 // mm/s
 #define MAX_FEEDRATE_Y 70 // mm/s

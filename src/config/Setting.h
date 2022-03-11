@@ -7,6 +7,7 @@ class Setting
 {
 private:
 public:
+  bool absoluteMode = true;
   double_xyze_t stepsPerUnit; // steps/mm
   double_xyze_t maxAcceleration; // mm/s^2
   uint32_xyze_t maxAccelerateRate; // steps/s^2

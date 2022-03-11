@@ -15,7 +15,7 @@
 #include <SPI.h>
 #include <SD.h>
 
-bool absoluteMode = true;
+// bool absoluteMode = true;
 Array<String> sdFileList = Array<String>();
 File selectedFile;
 bool sdFileSelected = false;
@@ -67,7 +67,7 @@ void setup() {
   setting.maxAcceleration.e = MAX_ACCELERATION_E;
   
   Serial.begin(115200);
-  Heater::init(150);
+  Heater::init(200);
   Stepper::init();
   hotend.setPid(HOTEND_KP, HOTEND_KI, HOTEND_KD);
   hotbed.setPid(HOTBED_KP, HOTBED_KI, HOTBED_KD);
@@ -102,38 +102,42 @@ ISR(TIMER5_COMPA_vect) {
   // static uint32_t accTime = 0; // us
   // static uint32_t decTime = 0; // us
   // static bool correctMode = false;
-  // static int32_xyze_t stepErr = {};
+  static int32_xyze_t stepErr = {};
   // static int8_t correctDirX = 1;
   // static int8_t correctDirY = 1;
   // static uint32_t prevBlockId = 0;
+  static int32_t ySteps = 0;
   
   if(curBlock->isBusy) {
     if(curBlock->stepEventCompleted == 0) interval = 0;
     // Which axis need advance one step during one step event
     for(uint8_t i=0; i<stepLoops; i++) {
+      if(curBlock->stepEventCompleted >= curBlock->stepEventCount) break; // this is easy to forget but necessary
+
       motorX.deltaError += curBlock->steps.x;
-      if (motorX.deltaError > 0) {
+      if (motorX.deltaError >= 0) {
         motorX.moveOneStep();
         motorX.posInSteps += curBlock->dir.x;
         motorX.deltaError -= curBlock->stepEventCount;
       }
 
       motorY.deltaError += curBlock->steps.y;
-      if (motorY.deltaError > 0) {
+      if (motorY.deltaError >= 0) {
         motorY.moveOneStep();
         motorY.posInSteps += curBlock->dir.y;
         motorY.deltaError -= curBlock->stepEventCount;
+        ySteps++;
       }
 
       motorE.deltaError += curBlock->steps.e;
-      if (motorE.deltaError > 0) {
+      if (motorE.deltaError >= 0) {
         motorE.moveOneStep();
         motorE.posInSteps += curBlock->dir.e;
         motorE.deltaError -= curBlock->stepEventCount;
       }
 
       motorZ.deltaError += curBlock->steps.z;
-      if (motorZ.deltaError > 0) {
+      if (motorZ.deltaError >= 0) {
         motorZ.moveOneStep();
         motorZ1.moveOneStep();
         motorZ.posInSteps += curBlock->dir.z;
@@ -153,6 +157,15 @@ ISR(TIMER5_COMPA_vect) {
       curBlock->isBusy = false; // mark current block as completed
       curBlock->isDone = true; // mark current block as completed
       curBlock->isReady = false;
+      Serial.print("block");
+      Serial.print(curBlock->id);
+      Serial.print(" stepLoops ");
+      Serial.print(stepLoops);
+      Serial.print(" yStep isr vs plan ");
+      Serial.print(ySteps);
+      Serial.print(' ');
+      Serial.println(curBlock->steps.y);
+      ySteps = 0;
       // prevBlockId = curBlock->id;
       Planner::blockQueue.dequeue();
     } else if (curBlock->stepEventCompleted <= curBlock->accelerateUntil) { // acc phase
@@ -186,9 +199,14 @@ ISR(TIMER5_COMPA_vect) {
     interval = 1000UL;
   }
 
-  // if (curBlock->isDone && (Planner::blockQueue._length > 1) && Planner::blockQueue._data[Planner::blockQueue._firstIndex].isReady) {
-  if (curBlock->isDone && Planner::blockQueue._data[Planner::blockQueue._firstIndex].isReady) {
+  if (curBlock->isDone && (Planner::blockQueue._length > 0) && Planner::blockQueue._data[Planner::blockQueue._firstIndex].isReady) {
+  // if (curBlock->isDone && Planner::blockQueue._data[Planner::blockQueue._firstIndex].isReady) {
     curBlock = &Planner::blockQueue._data[Planner::blockQueue._firstIndex];
+    motorX.enable();
+    motorY.enable();
+    motorZ.enable();
+    motorZ1.enable();
+    motorE.enable();
     motorX.setDir(curBlock->dir.x);
     motorY.setDir(curBlock->dir.y);
     motorZ.setDir(curBlock->dir.z);
@@ -204,13 +222,53 @@ ISR(TIMER5_COMPA_vect) {
     stepLoops = 1;
     Serial.print("Exec block");
     Serial.print(curBlock->id);
-    Serial.print(" motorX.pos ");
-    Serial.print(motorX.posInSteps);
-    Serial.print(" startPos.x ");
-    Serial.print(curBlock->startStep.x);
+    stepErr.x = curBlock->startStep.x - motorX.posInSteps;
+    stepErr.y = curBlock->startStep.y - motorY.posInSteps;
+    stepErr.z = curBlock->startStep.z - motorZ.posInSteps;
+    stepErr.e = curBlock->startStep.e - motorE.posInSteps;
+    Serial.print(" motorPos - planStartPos ");
+    Serial.print(stepErr.x);
+    Serial.print(' ');
+    Serial.print(stepErr.y);
+    Serial.print(' ');
+    Serial.print(stepErr.z);
+    Serial.print(' ');
+    Serial.print(stepErr.e);
+    // Serial.print(" planStartPos ");
+    // Serial.print(curBlock->startStep.x);
+    // Serial.print(' ');
+    // Serial.print(curBlock->startStep.y);
+    // Serial.print(' ');
+    // Serial.print(curBlock->startStep.z);
+    // Serial.print(' ');
+    // Serial.print(curBlock->startStep.e);
     Serial.print(" queLen ");
     Serial.println(Planner::blockQueue._length);
+
+    // if((abs(stepErr.x) > 5) || abs(stepErr.y) > 5) {
+    //   correctMode = true;
+    //   correctDirX = stepErr.x > 0 ? 1 : -1;
+    //   correctDirY = stepErr.y > 0 ? 1 : -1;
+    // }
   }
+
+  // if(correctMode) {
+  //   motorX.setDir(correctDirX);
+  //   motorY.setDir(correctDirY);
+  //   if(abs(stepErr.x) > 5) {
+  //     motorX.moveOneStep();
+  //     motorX.posInSteps += correctDirX;
+  //   }
+  //   if(abs(stepErr.y) > 5) {
+  //     motorY.moveOneStep();
+  //     motorY.posInSteps += correctDirY;
+  //   }
+  //   stepErr.x = curBlock->startStep.x - motorX.posInSteps;
+  //   stepErr.y = curBlock->startStep.y - motorY.posInSteps;
+  //   if((abs(stepErr.x) < 5) && abs(stepErr.y) < 5) {
+  //     correctMode = false;
+  //   }
+    
 
   // Set ISR interval
   // If current speed is 1000steps/s, set interupt interval as 1000us(1/1000s)
@@ -265,7 +323,11 @@ void loop() {
   // Parse Gcode
   if (!gcodeStrQueue.isEmpty() && !Planner::blockQueue.isFull()){
         Gcode gcode = Gcode::parse(gcodeStrQueue.dequeue());
-
+        static double_xyze_t startPos = {};
+        static double_xyze_t targetPos = {};
+        static double_xyze_t prevStartPos = {};
+        static double_xyze_t prevTargetPos = {};
+        static bool prevSegmentUsed = true;
         // if (gcode.prevX > X_RANGE_MAX || gcode.prevY > Y_RANGE_MAX || gcode.prevZ > Z_RANGE_MAX
         //  || gcode.prevX < X_RANGE_MIN || gcode.prevY < Y_RANGE_MIN || gcode.prevZ < Z_RANGE_MIN) {
         //   Serial.print("Cmd outrange, drop this cmd");
@@ -280,19 +342,19 @@ void loop() {
                 // Serial.print("Parse result: G1 ");
                 // if(gcode.hasX){
                 //   Serial.print("X");
-                //   Serial.print(gcode.X);
+                //   Serial.print(gcode.X, 3);
                 // } 
                 // if(gcode.hasY){
                 //   Serial.print(" Y");
-                //   Serial.print(gcode.Y);
+                //   Serial.print(gcode.Y, 3);
                 // } 
                 // if(gcode.hasZ){
                 //   Serial.print(" Z");
-                //   Serial.print(gcode.Z);
+                //   Serial.print(gcode.Z, 3);
                 // } 
                 // if(gcode.hasE){
                 //   Serial.print(" E");
-                //   Serial.print(gcode.E);
+                //   Serial.print(gcode.E, 5);
                 // } 
                 // if(gcode.hasF){
                 //   Serial.print(" F");
@@ -300,24 +362,20 @@ void loop() {
                 // }
                 // Serial.println();
 
-                motorX.enable();
-                motorY.enable();
-                motorZ.enable();
-                motorZ1.enable();
-                motorE.enable();
+                // motorX.enable();
+                // motorY.enable();
+                // motorZ.enable();
+                // motorZ1.enable();
+                // motorE.enable();
 
-                static double_xyze_t startPos = {};
-                static double_xyze_t targetPos = {};
-                static double_xyze_t prevStartPos = {};
-                static double_xyze_t prevTargetPos = {};
-                static bool prevSegmentUsed = true;
+                
                 if(prevSegmentUsed) {
                   startPos = prevTargetPos;
                 } else {
                   startPos = prevStartPos;
                 }
 
-                if(absoluteMode) {
+                if(setting.absoluteMode) {
                   if(gcode.hasX) targetPos.x = gcode.X;
                   if(gcode.hasY) targetPos.y = gcode.Y;
                   if(gcode.hasZ) targetPos.z = gcode.Z;
@@ -474,23 +532,40 @@ void loop() {
           // G90 - Absolute positioning
           case 90:
             Serial.println("G90 - Absolute positioning");
-            absoluteMode = true;
+            setting.absoluteMode = true;
             break;
           
           // G91 - Relative positioning
           case 91:
             Serial.println("G91 - Relative positioning");
-            absoluteMode = false;
+            setting.absoluteMode = false;
 
             break;
 
           // G92 - Set Position
           case 92:
             Serial.println("G92 - Set Position");
-            if(gcode.hasX) gcode.prevX = gcode.X;
-            if(gcode.hasY) gcode.prevY = gcode.Y;
-            if(gcode.hasZ) gcode.prevZ = gcode.Z;
-            if(gcode.hasE) gcode.prevE = gcode.E;
+            if(gcode.hasX) {
+              prevStartPos.x = gcode.X;
+              prevTargetPos.x = gcode.X;
+              gcode.prevX = gcode.X;
+            }
+            if(gcode.hasY) {
+              prevStartPos.y = gcode.Y;
+              prevTargetPos.y = gcode.Y;
+              gcode.prevY = gcode.Y;
+            }
+            if(gcode.hasZ) {
+              prevStartPos.z = gcode.Z;
+              prevTargetPos.z = gcode.Z;
+              gcode.prevZ = gcode.Z;
+            }
+            if(gcode.hasE) {
+              prevStartPos.e = gcode.E;
+              prevTargetPos.e = gcode.E;
+              gcode.prevE = gcode.E;
+              motorE.posInSteps = gcode.E;
+            }
             break;
 
           break;

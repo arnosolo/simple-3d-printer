@@ -12,6 +12,12 @@ class Planner
 private:
 public:
   static Queue<block_t> blockQueue;
+  static double_xyze_t startPos;
+  static double_xyze_t targetPos;
+  static double_xyze_t prevStartPos;
+  static double_xyze_t prevTargetPos;
+  static bool prevSegmentUsed;
+
   Planner();
   static bool planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, double nominalSpeed, double acceleration, Setting* setting);
 

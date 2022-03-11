@@ -30,16 +30,16 @@ void Gcode::setGcodeArg(char flag, String num) {
     // cmdnum = num.toInt();
     break;
   case 'X':
-    X = num.toFloat();
+    X = num.toDouble();
     break;
   case 'Y':
-    Y = num.toFloat();
+    Y = num.toDouble();
     break;
   case 'Z':
-    Z = num.toFloat();
+    Z = num.toDouble();
     break;
   case 'E':
-    E = num.toFloat();
+    E = num.toDouble();
     break;
   case 'F':
     F = num.toFloat();

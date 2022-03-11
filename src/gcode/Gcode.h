@@ -24,6 +24,9 @@ public:
   bool hasE;
   bool hasF;
   bool hasS;
+  bool hasP;
+  bool hasI;
+  bool hasD;
 
   static double prevAcceleration; // mm/s^2
   static double prevFeedSpeed; // mm/min
