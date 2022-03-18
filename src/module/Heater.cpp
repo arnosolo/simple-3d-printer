@@ -82,7 +82,6 @@ void Heater::setPid(float p, float i, float d) {
   kd = d;
 }
 
-
 uint16_t Heater::calculatePid() {
   float curTemp = readTemp();
   // float err = _targetTemp - readTemp();

@@ -8,19 +8,12 @@
 #include "module/Stepper.hpp"
 #include "module/Planner.hpp"
 #include "module/Endstop.hpp"
+#include "module/SDcard.hpp"
 #include "Utils/Queue.hpp"
 #include "Utils/types.hpp"
 #include "Utils/Array.hpp"
-#include <SPI.h>
-#include <SD.h>
 
-// bool absoluteMode = true;
-Array<String> sdFileList = Array<String>();
-File selectedFile;
-bool sdFileSelected = false;
-double_xyze_t currentPos = {};
 Queue<String> gcodeStrQueue = Queue<String>(5);
-// block_t curBlock = {};
 block_t initBlock = {};
 block_t* curBlock = nullptr;
 Setting setting;
@@ -36,24 +29,7 @@ Endstop xMin(PIN_X_MIN);
 Endstop yMin(PIN_Y_MIN);
 Endstop zMin(PIN_Z_MIN);
 Endstop z1Min(PIN_Z1_MIN);
-
-void printStr(String str, int i) {
-  Serial.print("Option ");
-  Serial.print(i);
-  Serial.print(": ");
-  Serial.println(str);
-};
-
-void getFileList(Array<String> *fileList) {
-  fileList->clean();
-  File root = SD.open("/");
-  while (true) {
-    File item =  root.openNextFile();
-    if (!item) break;
-    fileList->push(item.name());
-    item.close();
-  }
-}
+SDcard sdCard(PIN_SPI_CS);
 
 void setup() {
   setting.stepsPerUnit.x = STEPS_PER_UNIT_X;
@@ -76,22 +52,11 @@ void setup() {
   curBlock->isBusy = false;
   Gcode::prevAcceleration = 1000; // mm/s
 
-  // SD card init
-  if(SD.begin(PIN_SPI_CS) == false){
-    Serial.println("initialization failed. Things to check:");
-    Serial.println("1. is a card inserted?");
-    Serial.println("2. is your wiring correct?");
-    Serial.println("3. did you change the chipSelect pin to match your shield or module?");
-    Serial.println("Note: press reset or reopen this serial monitor after fixing your issue!");
-    while (true);
-  };
-  Serial.println("SD card initialization done.");
-
-  motorX.disable();
-  motorY.disable();
-  motorZ.disable();
-  motorZ1.disable();
-  motorE.disable();
+  // motorX.disable();
+  // motorY.disable();
+  // motorZ.disable();
+  // motorZ1.disable();
+  // motorE.disable();
 }
 
 // Motor control isr
@@ -100,11 +65,7 @@ ISR(TIMER5_COMPA_vect) {
   static uint8_t stepLoops = 1;
   // static uint32_t accTime = 0; // us
   // static uint32_t decTime = 0; // us
-  // static bool correctMode = false;
   static int32_xyze_t stepErr = {};
-  // static int8_t correctDirX = 1;
-  // static int8_t correctDirY = 1;
-  // static uint32_t prevBlockId = 0;
   static int32_t ySteps = 0;
   
   if(curBlock->isBusy) {
@@ -199,7 +160,6 @@ ISR(TIMER5_COMPA_vect) {
   }
 
   if (curBlock->isDone && (Planner::blockQueue._length > 0) && Planner::blockQueue._data[Planner::blockQueue._firstIndex].isReady) {
-  // if (curBlock->isDone && Planner::blockQueue._data[Planner::blockQueue._firstIndex].isReady) {
     curBlock = &Planner::blockQueue._data[Planner::blockQueue._firstIndex];
     motorX.enable();
     motorY.enable();
@@ -225,7 +185,6 @@ ISR(TIMER5_COMPA_vect) {
     stepErr.y = curBlock->startStep.y - motorY.posInSteps;
     stepErr.z = curBlock->startStep.z - motorZ.posInSteps;
     stepErr.e = curBlock->startStep.e - motorE.posInSteps;
-    // Serial.print(" motorPos - planStartPos ");
     Serial.print(" stepErr ");
     Serial.print(stepErr.x);
     Serial.print(' ');
@@ -234,41 +193,9 @@ ISR(TIMER5_COMPA_vect) {
     Serial.print(stepErr.z);
     Serial.print(' ');
     Serial.print(stepErr.e);
-    // Serial.print(" planStartPos ");
-    // Serial.print(curBlock->startStep.x);
-    // Serial.print(' ');
-    // Serial.print(curBlock->startStep.y);
-    // Serial.print(' ');
-    // Serial.print(curBlock->startStep.z);
-    // Serial.print(' ');
-    // Serial.print(curBlock->startStep.e);
     Serial.print(" queLen ");
     Serial.println(Planner::blockQueue._length);
-
-    // if((abs(stepErr.x) > 5) || abs(stepErr.y) > 5) {
-    //   correctMode = true;
-    //   correctDirX = stepErr.x > 0 ? 1 : -1;
-    //   correctDirY = stepErr.y > 0 ? 1 : -1;
-    // }
   }
-
-  // if(correctMode) {
-  //   motorX.setDir(correctDirX);
-  //   motorY.setDir(correctDirY);
-  //   if(abs(stepErr.x) > 5) {
-  //     motorX.moveOneStep();
-  //     motorX.posInSteps += correctDirX;
-  //   }
-  //   if(abs(stepErr.y) > 5) {
-  //     motorY.moveOneStep();
-  //     motorY.posInSteps += correctDirY;
-  //   }
-  //   stepErr.x = curBlock->startStep.x - motorX.posInSteps;
-  //   stepErr.y = curBlock->startStep.y - motorY.posInSteps;
-  //   if((abs(stepErr.x) < 5) && abs(stepErr.y) < 5) {
-  //     correctMode = false;
-  //   }
-    
 
   // Set ISR interval
   // If current speed is 1000steps/s, set interupt interval as 1000us(1/1000s)
@@ -305,444 +232,452 @@ void loop() {
   }
 
   // Read Gcode from SD card
-  if (sdFileSelected && !gcodeStrQueue.isFull()) {
-    String str = selectedFile.readStringUntil('\n');
+  if (sdCard.sdFileSelected && !gcodeStrQueue.isFull()) {
+    String str = sdCard.selectedFile.readStringUntil('\n');
     // Serial.print("Read gcode from SD card ");
     // Serial.println(str);
     while(str.charAt(0) == ';'){
-      str = selectedFile.readStringUntil('\n');
+      str = sdCard.selectedFile.readStringUntil('\n');
     }
     gcodeStrQueue.enqueue(str);
-    if(selectedFile.position() >= selectedFile.size()) {
-      sdFileSelected = false;
-      selectedFile.close();
+    if(sdCard.selectedFile.position() >= sdCard.selectedFile.size()) {
+      sdCard.sdFileSelected = false;
+      sdCard.selectedFile.close();
       Serial.println("Print Complete");
     }
   }
 
   // Parse Gcode
   if (!gcodeStrQueue.isEmpty() && !Planner::blockQueue.isFull()){
-        Gcode gcode = Gcode::parse(gcodeStrQueue.dequeue());
-        static double_xyze_t startPos = {};
-        static double_xyze_t targetPos = {};
-        static double_xyze_t prevStartPos = {};
-        static double_xyze_t prevTargetPos = {};
-        static bool prevSegmentUsed = true;
-        // if (gcode.prevX > X_RANGE_MAX || gcode.prevY > Y_RANGE_MAX || gcode.prevZ > Z_RANGE_MAX
-        //  || gcode.prevX < X_RANGE_MIN || gcode.prevY < Y_RANGE_MIN || gcode.prevZ < Z_RANGE_MIN) {
-        //   Serial.print("Cmd outrange, drop this cmd");
-        // }
+    Gcode gcode = Gcode::parse(gcodeStrQueue.dequeue());
+    static double_xyze_t startPos = {};
+    static double_xyze_t targetPos = {};
+    static double_xyze_t prevStartPos = {};
+    static double_xyze_t prevTargetPos = {};
+    static bool prevSegmentUsed = true;
 
-        if (gcode.cmdtype == 'G') {
-            switch (gcode.cmdnum) {
-            // G01 - linear motion
-            case 0:
-            case 1:
-              {
-                // Serial.print("Parse result: G1 ");
-                // if(gcode.hasX){
-                //   Serial.print("X");
-                //   Serial.print(gcode.X, 3);
-                // } 
-                // if(gcode.hasY){
-                //   Serial.print(" Y");
-                //   Serial.print(gcode.Y, 3);
-                // } 
-                // if(gcode.hasZ){
-                //   Serial.print(" Z");
-                //   Serial.print(gcode.Z, 3);
-                // } 
-                // if(gcode.hasE){
-                //   Serial.print(" E");
-                //   Serial.print(gcode.E, 5);
-                // } 
-                // if(gcode.hasF){
-                //   Serial.print(" F");
-                //   Serial.print(gcode.F);
-                // }
-                // Serial.println();
+    if (gcode.cmdtype == 'G') {
+        switch (gcode.cmdnum) {
+        // G01 - linear motion
+        case 0:
+        case 1:
+          {
+            // Serial.print("Parse result: G1 ");
+            // if(gcode.hasX){
+            //   Serial.print("X");
+            //   Serial.print(gcode.X, 3);
+            // } 
+            // if(gcode.hasY){
+            //   Serial.print(" Y");
+            //   Serial.print(gcode.Y, 3);
+            // } 
+            // if(gcode.hasZ){
+            //   Serial.print(" Z");
+            //   Serial.print(gcode.Z, 3);
+            // } 
+            // if(gcode.hasE){
+            //   Serial.print(" E");
+            //   Serial.print(gcode.E, 5);
+            // } 
+            // if(gcode.hasF){
+            //   Serial.print(" F");
+            //   Serial.print(gcode.F);
+            // }
+            // Serial.println();
 
-                // motorX.enable();
-                // motorY.enable();
-                // motorZ.enable();
-                // motorZ1.enable();
-                // motorE.enable();
+            if(prevSegmentUsed) {
+              startPos = prevTargetPos;
+            } else {
+              startPos = prevStartPos;
+            }
 
-                
-                if(prevSegmentUsed) {
-                  startPos = prevTargetPos;
-                } else {
-                  startPos = prevStartPos;
-                }
-
-                if(setting.absoluteMode) {
-                  if(gcode.hasX) targetPos.x = gcode.X;
-                  if(gcode.hasY) targetPos.y = gcode.Y;
-                  if(gcode.hasZ) targetPos.z = gcode.Z;
-                  if(gcode.hasE) {
-                    // Prevent parse E716.16 as E7
-                    if(abs(gcode.prevE - gcode.E) < 100) {
-                      targetPos.e = gcode.E;
-                    }
-                  };
-                } else {
-                  targetPos.x = gcode.hasX ? (targetPos.x + gcode.X) : targetPos.x;
-                  targetPos.y = gcode.hasY ? (targetPos.y + gcode.Y) : targetPos.y;
-                  targetPos.z = gcode.hasZ ? (targetPos.z + gcode.Z) : targetPos.z;
-                  targetPos.e = gcode.hasE ? (targetPos.e + gcode.E) : targetPos.e;
-                }
-
-                if(!setting.eAbsoluteMode && gcode.hasE) {
-                  startPos.e = 0;
+            if(setting.absoluteMode) {
+              if(gcode.hasX) targetPos.x = gcode.X;
+              if(gcode.hasY) targetPos.y = gcode.Y;
+              if(gcode.hasZ) targetPos.z = gcode.Z;
+              if(gcode.hasE) {
+                // Prevent parse E716.16 as E7
+                if(abs(gcode.prevE - gcode.E) < 100) {
                   targetPos.e = gcode.E;
                 }
-                
-                double nominalSpeed = gcode.hasF ? (gcode.F / 60) : (gcode.prevFeedSpeed / 60);
-                double acceleration = gcode.prevAcceleration;
-
-                prevSegmentUsed = Planner::planBufferLine(startPos, targetPos, nominalSpeed, acceleration, &setting);
-
-                prevStartPos = startPos;
-                prevTargetPos = targetPos;
-                if (gcode.hasF) Gcode::prevFeedSpeed = gcode.F;
-                if (gcode.hasX) Gcode::prevX = gcode.X;
-                if (gcode.hasY) Gcode::prevY = gcode.Y;
-                if (gcode.hasZ) Gcode::prevZ = gcode.Z;
-                if (gcode.hasE) Gcode::prevE = gcode.E;
-              }
-              break;
-
-            // G28 - Auto Home
-            case 28:
-              Serial.println("G28 - Auto Home");
-              // It's necessary to make sure all block is cleared before return home
-              if(Planner::blockQueue._length > 0) {
-                while(!Planner::blockQueue._data[Planner::blockQueue._lastIndex].isDone) {
-                  Serial.println("Some blocks are still unhandled, wait 1s ...");
-                  delay(1000);
-                }
-              }
-
-              {
-                motorZ.enable();
-                motorZ1.enable();
-                motorZ.setDir(1);
-                motorZ1.setDir(1);
-                delay(1);
-                float speed = 3;
-                float distance = 3; // mm
-                uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.z);
-                for (uint16_t i = 0; i < distance * setting.stepsPerUnit.z; i++) {
-                  motorZ.moveOneStep();
-                  motorZ1.moveOneStep();
-                  delayMicroseconds(interval);
-                }
-
-                if (gcode.hasX)
-                {
-                  motorX.enable();
-                  motorX.setDir(-1);
-                  uint32_t speed = 20; // mm/s
-                  uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.x);
-                  while (xMin.isTriggered() == false)
-                  {
-                    motorX.moveOneStep();
-                    delayMicroseconds(interval); // 1600steps/s
-                  }
-                  motorX.setDir(1);
-                  speed = 10;
-                  interval = 1000000UL / (speed * setting.stepsPerUnit.x);
-                  while (xMin.isTriggered())
-                  {
-                    motorX.moveOneStep();
-                    delayMicroseconds(interval); // 80 steps/s
-                  }
-                  for (uint16_t i = 0; i < 1 * setting.stepsPerUnit.x; i++) {
-                    motorX.moveOneStep();
-                    delayMicroseconds(interval);
-                  }
-                  // globalPos.x = 0;
-                  gcode.prevX = 0;
-                  Serial.print("gcode.prevX = ");
-                  Serial.println(gcode.prevX);
-                  motorX.posInSteps = 0;
-                }
-
-              if(gcode.hasY)
-              {
-                motorY.enable();
-                motorY.setDir(-1);
-                // uint32_t speed = 20; // mm/s
-                // uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.y);
-                speed = 20; // mm/s
-                interval = 1000000UL / (speed * setting.stepsPerUnit.y);
-                while (yMin.isTriggered() == false)
-                {
-                  motorY.moveOneStep();
-                  delayMicroseconds(interval); // 1600steps/s
-                }
-                motorY.setDir(1);
-                speed = 10;
-                interval = 1000000UL / (speed * setting.stepsPerUnit.y);
-                while (yMin.isTriggered())
-                {
-                  motorY.moveOneStep();
-                  delayMicroseconds(interval); // 80 steps/s
-                }
-                for (uint16_t i = 0; i < 1 * setting.stepsPerUnit.y; i++) {
-                  motorY.moveOneStep();
-                  delayMicroseconds(interval);
-                }
-                // globalPos.y = 0;
-                gcode.prevY = 0;
-                Serial.print("gcode.prevY = ");
-                Serial.println(gcode.prevY);
-                motorY.posInSteps = 0;
-              }
-
-              if(gcode.hasZ) 
-              {
-                motorZ.enable();
-                motorZ1.enable();
-                motorZ.setDir(-1);
-                motorZ1.setDir(-1);
-                float speed = 2; // mm/s
-                uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.z);
-                while(zMin.isTriggered() == false || z1Min.isTriggered() == false) {
-                  if(!zMin.isTriggered()) motorZ.moveOneStep();
-                  if(!z1Min.isTriggered()) motorZ1.moveOneStep();
-                  delayMicroseconds(interval);
-                }
-                motorZ.setDir(1);
-                motorZ1.setDir(1);
-                speed = 0.8; // mm/s
-                interval = 1000000UL / (speed * setting.stepsPerUnit.z);
-                while(zMin.isTriggered() || z1Min.isTriggered()) {
-                  if(zMin.isTriggered()) motorZ.moveOneStep();
-                  if(z1Min.isTriggered()) motorZ1.moveOneStep();
-                  delayMicroseconds(interval);
-                }
-                delay(30);
-                while(zMin.isTriggered() || z1Min.isTriggered()) {
-                  if(zMin.isTriggered()) motorZ.moveOneStep();
-                  if(z1Min.isTriggered()) motorZ1.moveOneStep();
-                  delayMicroseconds(interval);
-                }
-                // globalPos.z = 0;
-                gcode.prevZ = 0;
-                Serial.print("gcode.prevZ = ");
-                Serial.println(gcode.prevZ);
-                motorZ.posInSteps = 0;
-                motorZ1.posInSteps = 0;
-              }
+              };
+            } else {
+              targetPos.x = gcode.hasX ? (targetPos.x + gcode.X) : targetPos.x;
+              targetPos.y = gcode.hasY ? (targetPos.y + gcode.Y) : targetPos.y;
+              targetPos.z = gcode.hasZ ? (targetPos.z + gcode.Z) : targetPos.z;
+              targetPos.e = gcode.hasE ? (targetPos.e + gcode.E) : targetPos.e;
             }
-            break;
-          
-          // G90 - Absolute positioning
-          case 90:
-            Serial.println("G90 - Absolute positioning");
-            setting.absoluteMode = true;
-            setting.eAbsoluteMode = true;
-            break;
-          
-          // G91 - Relative positioning
-          case 91:
-            Serial.println("G91 - Relative positioning");
-            setting.absoluteMode = false;
-            setting.eAbsoluteMode = false;
-            break;
 
-          // G92 - Set Position
-          case 92:
-            Serial.println("G92 - Set Position");
-            if(gcode.hasX) {
-              prevStartPos.x = gcode.X;
-              prevTargetPos.x = gcode.X;
-              gcode.prevX = gcode.X;
+            if(!setting.eAbsoluteMode && gcode.hasE) {
+              startPos.e = 0;
+              targetPos.e = gcode.E;
             }
-            if(gcode.hasY) {
-              prevStartPos.y = gcode.Y;
-              prevTargetPos.y = gcode.Y;
-              gcode.prevY = gcode.Y;
-            }
-            if(gcode.hasZ) {
-              prevStartPos.z = gcode.Z;
-              prevTargetPos.z = gcode.Z;
-              gcode.prevZ = gcode.Z;
-            }
-            if(gcode.hasE) {
-              prevStartPos.e = gcode.E;
-              prevTargetPos.e = gcode.E;
-              gcode.prevE = gcode.E;
-              motorE.posInSteps = gcode.E;
-            }
-            break;
+            
+            double nominalSpeed = gcode.hasF ? (gcode.F / 60) : (gcode.prevFeedSpeed / 60);
+            double acceleration = gcode.prevAcceleration;
 
+            prevSegmentUsed = Planner::planBufferLine(startPos, targetPos, nominalSpeed, acceleration, &setting);
+
+            prevStartPos = startPos;
+            prevTargetPos = targetPos;
+            if (gcode.hasF) Gcode::prevFeedSpeed = gcode.F;
+            if (gcode.hasX) Gcode::prevX = gcode.X;
+            if (gcode.hasY) Gcode::prevY = gcode.Y;
+            if (gcode.hasZ) Gcode::prevZ = gcode.Z;
+            if (gcode.hasE) Gcode::prevE = gcode.E;
+          }
           break;
 
-          default:
-            Serial.print(gcode.cmdtype);
-            Serial.print(gcode.cmdnum);
-            Serial.println(" still not implement yet");
-            break;
-          }
-
-          Serial.write("ok\n");
-        } else if (gcode.cmdtype == 'M') {
-          switch (gcode.cmdnum) {
-          // M20 - List SD Card
-          case 20:
-            Serial.println("M20 - List SD Card");
-            // Print file list
-            getFileList(&sdFileList);
-            Serial.println("Send M23 I4 to print option4");
-            sdFileList.forEach(printStr);
-            break;
-
-          // M23 - Select SD file
-          case 23:
-            Serial.println("M23 - Select SD file");
-            selectedFile = SD.open(sdFileList[(int)gcode.I]);
-            sdFileSelected = true;
-            break;
-
-          // M82 - disable motors
-          case 82:
-            Serial.println("M82 - disable motors");
-            if(Planner::blockQueue._length > 0) {
-              while(!Planner::blockQueue._data[Planner::blockQueue._lastIndex].isDone) {
+        // G28 - Auto Home
+        case 28:
+          Serial.println("G28 - Auto Home");
+          // It's necessary to make sure all block is cleared before return home
+          if(Planner::blockQueue._length > 0) {
+            while(!Planner::blockQueue._data[Planner::blockQueue._lastIndex].isDone) {
               Serial.println("Some blocks are still unhandled, wait 1s ...");
               delay(1000);
-              }
             }
-            motorX.disable();
-            motorY.disable();
-            motorZ.disable();
-            motorZ1.disable();
-            motorE.disable();
-            break;
-
-          // M83 - E Relative
-          case 83:
-            setting.eAbsoluteMode = false;
-            break;
-
-          // M104 - Set Hotend Temperature
-          case 104:
-            hotend.setTargetTemp(gcode.S);
-            Serial.println("M104 - Set Hotend Temperature");
-            Serial.print("Set targetTemp = ");
-            Serial.print(gcode.S);
-            Serial.print("\n");
-            break;
-
-          // M105 - Report Temperatures
-          case 105:
-            Serial.println("M105 - Report Temperatures");
-            Serial.print("Hotend temp = ");
-            Serial.print(hotend.readTemp());
-            Serial.print(" Hotbed temp = ");
-            Serial.println(hotbed.readTemp());
-            break;
-
-          // M106 - Set Fan Speed
-          case 106:
-            fan.setDuty(gcode.S);
-            Serial.print("M106 - Set Fan Speed as ");
-            Serial.println(gcode.S);
-            break;
-
-          // M107 - Fan Off
-          case 107:
-            fan.setDuty(0);
-            Serial.println("M107 - Fan Off");
-            break;
-
-          // M109 - Wait for Hotend Temperature
-          case 109:
-            Serial.println("M109 - Wait for Hotend Temperature");
-            if(gcode.hasS) {
-              hotend.setTargetTemp(gcode.S);
-              while(hotend.readTemp() < gcode.S) {
-                Serial.print("hotend temp = ");
-                Serial.println(hotend.readTemp());
-                delay(2000);
-              }
-            } else {
-              Serial.println("M109 should have S parameter, skip this cmd");
-            }
-            break;
-
-          // M140 - Set Bed Temperature
-          case 140:
-            hotbed.setTargetTemp(gcode.S);
-            Serial.println("M140 - Set Hotbed Temperature");
-            Serial.print("Set targetTemp = ");
-            Serial.print(gcode.S);
-            Serial.print("\n");
-            break;
-
-          // M190 - Wait for Bed Temperature
-          case 190:
-            Serial.println("M190 - Wait for Bed Temperature");
-            if(gcode.hasS) {
-              hotbed.setTargetTemp(gcode.S);
-              while(hotbed.readTemp() < (gcode.S - 3)) {
-                Serial.print("Hotbed temp = ");
-                Serial.println(hotbed.readTemp());
-                delay(2000);
-              }
-            } else {
-              Serial.println("M190 should have S parameter, skip this cmd");
-            }
-
-            break;
-
-          // M204 - Set Starting Acceleration
-          case 204:
-            Serial.print("M204 - Set Acceleration as ");
-            Serial.println(gcode.S);
-            Gcode::prevAcceleration = gcode.S;
-            break;
-
-          // M301 - Set Hotend PID
-          case 301:
-            hotend.kp = gcode.P;
-            hotend.ki = gcode.I;
-            hotend.kd = gcode.D;
-            Serial.println("M301 - Set Hotend PID");
-            Serial.print("kp = ");
-            Serial.print(hotend.kp);
-            Serial.print(" ki = ");
-            Serial.print(hotend.ki);
-            Serial.print(" kd = ");
-            Serial.print(hotend.kd);
-            Serial.print("\n");
-            break;
-          // M304 - Set Bed PID
-          case 304:
-            hotbed.kp = gcode.P;
-            hotbed.ki = gcode.I;
-            hotbed.kd = gcode.D;
-            Serial.println("M304 - Set Bed PID");
-            Serial.print("kp = ");
-            Serial.print(hotbed.kp);
-            Serial.print(" ki = ");
-            Serial.print(hotbed.ki);
-            Serial.print(" kd = ");
-            Serial.print(hotbed.kd);
-            Serial.print("\n");
-            break;
-
-          default:
-            Serial.print(gcode.cmdtype);
-            Serial.print(gcode.cmdnum);
-            Serial.println(" still not implement yet");
-            break;
           }
 
-          Serial.write("ok\n");
+          {
+            motorZ.enable();
+            motorZ1.enable();
+            motorZ.setDir(1);
+            motorZ1.setDir(1);
+            delay(1);
+            float speed = 3;
+            float distance = 3; // mm
+            uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.z);
+            for (uint16_t i = 0; i < distance * setting.stepsPerUnit.z; i++) {
+              motorZ.moveOneStep();
+              motorZ1.moveOneStep();
+              delayMicroseconds(interval);
+            }
+
+            if (gcode.hasX)
+            {
+              motorX.enable();
+              motorX.setDir(-1);
+              uint32_t speed = 20; // mm/s
+              uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.x);
+              while (xMin.isTriggered() == false)
+              {
+                motorX.moveOneStep();
+                delayMicroseconds(interval); // 1600steps/s
+              }
+              motorX.setDir(1);
+              speed = 10;
+              interval = 1000000UL / (speed * setting.stepsPerUnit.x);
+              while (xMin.isTriggered())
+              {
+                motorX.moveOneStep();
+                delayMicroseconds(interval); // 80 steps/s
+              }
+              for (uint16_t i = 0; i < 1 * setting.stepsPerUnit.x; i++) {
+                motorX.moveOneStep();
+                delayMicroseconds(interval);
+              }
+              gcode.prevX = 0;
+              motorX.posInSteps = 0;
+              Serial.print("motorX.posInSteps = ");
+              Serial.println(motorX.posInSteps);
+            }
+
+          if(gcode.hasY)
+          {
+            motorY.enable();
+            motorY.setDir(-1);
+            speed = 20; // mm/s
+            interval = 1000000UL / (speed * setting.stepsPerUnit.y);
+            while (yMin.isTriggered() == false)
+            {
+              motorY.moveOneStep();
+              delayMicroseconds(interval); // 1600steps/s
+            }
+            motorY.setDir(1);
+            speed = 10;
+            interval = 1000000UL / (speed * setting.stepsPerUnit.y);
+            while (yMin.isTriggered())
+            {
+              motorY.moveOneStep();
+              delayMicroseconds(interval); // 80 steps/s
+            }
+            for (uint16_t i = 0; i < 1 * setting.stepsPerUnit.y; i++) {
+              motorY.moveOneStep();
+              delayMicroseconds(interval);
+            }
+            gcode.prevY = 0;
+            motorY.posInSteps = 0;
+            Serial.print("motorY.posInSteps = ");
+            Serial.println(motorY.posInSteps);
+          }
+
+          if(gcode.hasZ) 
+          {
+            motorZ.enable();
+            motorZ1.enable();
+
+            // Move down quickly
+            motorZ.setDir(-1);
+            motorZ1.setDir(-1);
+            float speed = 3; // mm/s
+            uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.z);
+            while(zMin.isTriggered() == false || z1Min.isTriggered() == false) {
+              if(!zMin.isTriggered()) motorZ.moveOneStep();
+              if(!z1Min.isTriggered()) motorZ1.moveOneStep();
+              delayMicroseconds(interval);
+            }
+            
+            // Move up a little
+            motorZ.setDir(1);
+            motorZ1.setDir(1);
+            for (uint32_t i = 0; i < 2 * setting.stepsPerUnit.z; i++) {
+              motorZ.moveOneStep();
+              motorZ1.moveOneStep();
+              delayMicroseconds(interval);
+            }
+
+            // Move down slowly until endstops are triggered
+            motorZ.setDir(-1);
+            motorZ1.setDir(-1);
+            speed = 0.8; // mm/s
+            interval = 1000000UL / (speed * setting.stepsPerUnit.z);
+            while(!zMin.isTriggered() || !z1Min.isTriggered()) {
+              if(!zMin.isTriggered()) motorZ.moveOneStep();
+              if(!z1Min.isTriggered()) motorZ1.moveOneStep();
+              delayMicroseconds(interval);
+            }
+
+            // Move up slowly until endstops are not triggered
+            motorZ.setDir(1);
+            motorZ1.setDir(1);
+            while(zMin.isTriggered() || z1Min.isTriggered()) {
+              if(zMin.isTriggered()) motorZ.moveOneStep();
+              if(z1Min.isTriggered()) motorZ1.moveOneStep();
+              delayMicroseconds(interval);
+            }
+            delay(30);
+            while(zMin.isTriggered() || z1Min.isTriggered()) {
+              if(zMin.isTriggered()) motorZ.moveOneStep();
+              if(z1Min.isTriggered()) motorZ1.moveOneStep();
+              delayMicroseconds(interval);
+            }
+
+            gcode.prevZ = 0;
+            motorZ.posInSteps = 0;
+            motorZ1.posInSteps = 0;
+            Serial.print("motorZ.posInSteps");
+            Serial.println(motorZ.posInSteps);
+            Serial.print("motorZ1.posInSteps");
+            Serial.println(motorZ1.posInSteps);
+          }
         }
+        break;
+      
+      // G90 - Absolute positioning
+      case 90:
+        Serial.println("G90 - Absolute positioning");
+        setting.absoluteMode = true;
+        setting.eAbsoluteMode = true;
+        break;
+      
+      // G91 - Relative positioning
+      case 91:
+        Serial.println("G91 - Relative positioning");
+        setting.absoluteMode = false;
+        setting.eAbsoluteMode = false;
+        break;
+
+      // G92 - Set Position
+      case 92:
+        Serial.println("G92 - Set Position");
+        if(gcode.hasX) {
+          prevStartPos.x = gcode.X;
+          prevTargetPos.x = gcode.X;
+          gcode.prevX = gcode.X;
+        }
+        if(gcode.hasY) {
+          prevStartPos.y = gcode.Y;
+          prevTargetPos.y = gcode.Y;
+          gcode.prevY = gcode.Y;
+        }
+        if(gcode.hasZ) {
+          prevStartPos.z = gcode.Z;
+          prevTargetPos.z = gcode.Z;
+          gcode.prevZ = gcode.Z;
+        }
+        if(gcode.hasE) {
+          prevStartPos.e = gcode.E;
+          prevTargetPos.e = gcode.E;
+          gcode.prevE = gcode.E;
+          motorE.posInSteps = gcode.E;
+        }
+        break;
+
+      break;
+
+      default:
+        Serial.print(gcode.cmdtype);
+        Serial.print(gcode.cmdnum);
+        Serial.println(" still not implement yet");
+        break;
+      }
+
+      Serial.write("ok\n");
+    } else if (gcode.cmdtype == 'M') {
+      switch (gcode.cmdnum) {
+      // M20 - List SD Card
+      case 20:
+        Serial.println("M20 - List SD Card");
+        // Print file list
+        sdCard.getFileList();
+        Serial.println("Send M23 I4 to print option4");
+        sdCard.printFileList();
+        break;
+
+      // M23 - Select SD file
+      case 23:
+        Serial.println("M23 - Select SD file");
+        sdCard.readFile((int)gcode.I);
+        break;
+
+      // M82 - disable motors
+      case 82:
+        Serial.println("M82 - disable motors");
+        if(Planner::blockQueue._length > 0) {
+          while(!Planner::blockQueue._data[Planner::blockQueue._lastIndex].isDone) {
+          Serial.println("Some blocks are still unhandled, wait 1s ...");
+          delay(1000);
+          }
+        }
+        motorX.disable();
+        motorY.disable();
+        motorZ.disable();
+        motorZ1.disable();
+        motorE.disable();
+        break;
+
+      // M83 - E Relative
+      case 83:
+        setting.eAbsoluteMode = false;
+        break;
+
+      // M104 - Set Hotend Temperature
+      case 104:
+        hotend.setTargetTemp(gcode.S);
+        Serial.println("M104 - Set Hotend Temperature");
+        Serial.print("Set targetTemp = ");
+        Serial.print(gcode.S);
+        Serial.print("\n");
+        break;
+
+      // M105 - Report Temperatures
+      case 105:
+        Serial.println("M105 - Report Temperatures");
+        Serial.print("Hotend temp = ");
+        Serial.print(hotend.readTemp());
+        Serial.print(" Hotbed temp = ");
+        Serial.println(hotbed.readTemp());
+        break;
+
+      // M106 - Set Fan Speed
+      case 106:
+        fan.setDuty(gcode.S);
+        Serial.print("M106 - Set Fan Speed as ");
+        Serial.println(gcode.S);
+        break;
+
+      // M107 - Fan Off
+      case 107:
+        fan.setDuty(0);
+        Serial.println("M107 - Fan Off");
+        break;
+
+      // M109 - Wait for Hotend Temperature
+      case 109:
+        Serial.println("M109 - Wait for Hotend Temperature");
+        if(gcode.hasS) {
+          hotend.setTargetTemp(gcode.S);
+          while(hotend.readTemp() < gcode.S) {
+            Serial.print("hotend temp = ");
+            Serial.println(hotend.readTemp());
+            delay(2000);
+          }
+        } else {
+          Serial.println("M109 should have S parameter, skip this cmd");
+        }
+        break;
+
+      // M140 - Set Bed Temperature
+      case 140:
+        hotbed.setTargetTemp(gcode.S);
+        Serial.println("M140 - Set Hotbed Temperature");
+        Serial.print("Set targetTemp = ");
+        Serial.print(gcode.S);
+        Serial.print("\n");
+        break;
+
+      // M190 - Wait for Bed Temperature
+      case 190:
+        Serial.println("M190 - Wait for Bed Temperature");
+        if(gcode.hasS) {
+          hotbed.setTargetTemp(gcode.S);
+          while(hotbed.readTemp() < (gcode.S - 3)) {
+            Serial.print("Hotbed temp = ");
+            Serial.println(hotbed.readTemp());
+            delay(2000);
+          }
+        } else {
+          Serial.println("M190 should have S parameter, skip this cmd");
+        }
+
+        break;
+
+      // M204 - Set Starting Acceleration
+      case 204:
+        Serial.print("M204 - Set Acceleration as ");
+        Serial.println(gcode.S);
+        Gcode::prevAcceleration = gcode.S;
+        break;
+
+      // M301 - Set Hotend PID
+      case 301:
+        hotend.kp = gcode.P;
+        hotend.ki = gcode.I;
+        hotend.kd = gcode.D;
+        Serial.println("M301 - Set Hotend PID");
+        Serial.print("kp = ");
+        Serial.print(hotend.kp);
+        Serial.print(" ki = ");
+        Serial.print(hotend.ki);
+        Serial.print(" kd = ");
+        Serial.print(hotend.kd);
+        Serial.print("\n");
+        break;
+      // M304 - Set Bed PID
+      case 304:
+        hotbed.kp = gcode.P;
+        hotbed.ki = gcode.I;
+        hotbed.kd = gcode.D;
+        Serial.println("M304 - Set Bed PID");
+        Serial.print("kp = ");
+        Serial.print(hotbed.kp);
+        Serial.print(" ki = ");
+        Serial.print(hotbed.ki);
+        Serial.print(" kd = ");
+        Serial.print(hotbed.kd);
+        Serial.print("\n");
+        break;
+
+      default:
+        Serial.print(gcode.cmdtype);
+        Serial.print(gcode.cmdnum);
+        Serial.println(" still not implement yet");
+        break;
+      }
+
+      Serial.write("ok\n");
+    }
 
   }
 

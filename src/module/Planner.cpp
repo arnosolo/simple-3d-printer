@@ -193,17 +193,6 @@ bool Planner::planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, do
       // Serial.print(sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
       }
     }
-    // double maxJunctionSpeed = MINIMUM_PLANNER_SPEED;
-    // if(cosTheta < 0.95) { // theta > 18°
-    // // theta 162° ~ 180°
-    //   maxJunctionSpeed = min(prevBlock->nominalSpeed, block.nominalSpeed);
-    //   if(cosTheta > -0.94) {// theta < 160°
-    //   // theta 18° ~ 160°
-    //   double sinHalfTheta = sqrt(0.5 * (1 - cosTheta));
-    //   maxJunctionSpeed = min(maxJunctionSpeed,
-    //     sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
-    //   }
-    // }
     
     double maxAllowSpeed = getMaxAllowSpeed(
       MINIMUM_PLANNER_SPEED, block.acceleration, block.distance);
@@ -235,8 +224,6 @@ bool Planner::planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, do
   block.needRecalculate = true;
   blockQueue.enqueue(block);
 
-  // Serial.print(" eSteps ");
-  // Serial.print(deltaStep.e);
   Serial.print(" queLen ");
   Serial.println(blockQueue._length);
 

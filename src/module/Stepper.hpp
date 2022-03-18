@@ -32,17 +32,19 @@ public:
     bool reverseDir, 
     float stepsPerUnit
   );
+
   // ~Stepper();
-  static void init();
-  static void isr();
 
   void enable();
   void disable();
-  void move(uint32_t steps, int16_t speed);
+  void move(uint32_t steps, uint32_t speed);
   void moveOneStep();
   void setHigh();
   void setLow();
   void setDir(int8_t dir);
+  
+  static void init();
+  static void isr();
 };
 
 #endif 

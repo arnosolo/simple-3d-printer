@@ -1,5 +1,7 @@
 #include "Stepper.hpp"
 
+block_t* Stepper::curBlock = nullptr;
+
 /**
  * @brief  Stepper motor init
  * @param  enablePin Set as 0 if you board don't have one.
@@ -11,13 +13,13 @@ Stepper::Stepper(uint8_t dirPin, uint8_t stepPin, uint8_t enablePin, bool revers
   _stepPin = stepPin;
   _enablePin = enablePin;
   _reverseDir = reverseDir;
-  // stepsPerUnit = stepsPerUnitInput;
   posInSteps = 0;
   needAdvance = false;
   pinMode(enablePin, OUTPUT);
   pinMode(dirPin, OUTPUT);
   pinMode(stepPin, OUTPUT);
   digitalWrite(stepPin, LOW);
+  this->disable();
 }
 
 void Stepper::enable() {
@@ -31,29 +33,15 @@ void Stepper::disable() {
 /**
  * @brief  Demond motor to move
  * @param  steps unit: steps, must >0
- * @param  speed unit: steps/s, -32768 ~ 32767
+ * @param  speed unit: steps/s, must >0
  * @return
  */
-void Stepper::move(uint32_t steps, int16_t speed){
-  // Set dir
-  if((speed > 0 && !_reverseDir) || (speed < 0 && _reverseDir)) {
-    digitalWrite(_dirPin, 1);
-  } else {
-    digitalWrite(_dirPin, 0);
-  }
-  
-  int16_t absSpeed = speed;
-  if(speed < 0) absSpeed = -speed;
-
-  uint16_t halfPeriod = 500000 / absSpeed;
-
-  // generate pulse
-  for (uint32_t i = 0; i < steps; i++)
-  {
+void Stepper::move(uint32_t steps, uint32_t speed){
+  uint32_t interval = 1000000UL / speed;
+  for (uint32_t i = 0; i < steps; i++) {
     digitalWrite(_stepPin, 1);
-    delayMicroseconds(halfPeriod);
     digitalWrite(_stepPin, 0);
-    delayMicroseconds(halfPeriod);
+    delayMicroseconds(interval);
   }
 }
 
