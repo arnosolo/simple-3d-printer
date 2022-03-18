@@ -1,4 +1,4 @@
-#include "Setting.h"
+#include "Setting.hpp"
 
 Setting::Setting() {
   

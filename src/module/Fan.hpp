@@ -1,5 +1,5 @@
-#ifndef _FAN_H_
-#define _FAN_H_
+#ifndef _FAN_HPP_
+#define _FAN_HPP_
 #include <Arduino.h>
 
 class Fan

@@ -16,7 +16,7 @@ Read in other languages: [简体中文](./docs/cn/浅析3d打印机原理.md)
 
 - Framework
 
-  - Arduino
+  - Arduino (should install vscode and platformio first)
 
 - MCU
 

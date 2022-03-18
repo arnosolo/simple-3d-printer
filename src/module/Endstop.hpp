@@ -1,5 +1,5 @@
-#ifndef _ENDSTOP_H_
-#define _ENDSTOP_H_
+#ifndef _ENDSTOP_HPP_
+#define _ENDSTOP_HPP_
 #include <Arduino.h>
 
 class Endstop

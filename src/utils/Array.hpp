@@ -1,5 +1,5 @@
-#ifndef _ARRAY_H_
-#define _ARRAY_H_
+#ifndef _ARRAY_HPP_
+#define _ARRAY_HPP_
 
 template<class T>
 class Array {

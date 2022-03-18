@@ -1,4 +1,4 @@
-#include "Gcode.h"
+#include "Gcode.hpp"
 
 double Gcode::prevAcceleration = 0; // mm/s^2
 double Gcode::prevFeedSpeed = 0; // mm/min

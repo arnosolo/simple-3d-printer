@@ -1,17 +1,16 @@
 #include <Arduino.h>
-#include "gcode/Gcode.h"
-#include "module/Heater.h"
-#include "module/Fan.h"
-#include "config/pin.h"
-#include "config/config.h"
-#include "config/Setting.h"
-#include "module/Stepper.h"
-#include "module/Planner.h"
-#include "module/Endstop.h"
-#include "Utils/Queue.h"
-#include "Utils/Utils.h"
-#include "Utils/types.h"
-#include "Utils/Array.h"
+#include "config/pin.hpp"
+#include "config/config.hpp"
+#include "gcode/Gcode.hpp"
+#include "module/Heater.hpp"
+#include "module/Fan.hpp"
+#include "module/Setting.hpp"
+#include "module/Stepper.hpp"
+#include "module/Planner.hpp"
+#include "module/Endstop.hpp"
+#include "Utils/Queue.hpp"
+#include "Utils/types.hpp"
+#include "Utils/Array.hpp"
 #include <SPI.h>
 #include <SD.h>
 
@@ -157,14 +156,14 @@ ISR(TIMER5_COMPA_vect) {
       curBlock->isBusy = false; // mark current block as completed
       curBlock->isDone = true; // mark current block as completed
       curBlock->isReady = false;
-      Serial.print("block");
-      Serial.print(curBlock->id);
-      Serial.print(" stepLoops ");
-      Serial.print(stepLoops);
-      Serial.print(" yStep isr vs plan ");
-      Serial.print(ySteps);
-      Serial.print(' ');
-      Serial.println(curBlock->steps.y);
+      // Serial.print("block");
+      // Serial.print(curBlock->id);
+      // Serial.print(" stepLoops ");
+      // Serial.print(stepLoops);
+      // Serial.print(" yStep isr vs plan ");
+      // Serial.print(ySteps);
+      // Serial.print(' ');
+      // Serial.println(curBlock->steps.y);
       ySteps = 0;
       // prevBlockId = curBlock->id;
       Planner::blockQueue.dequeue();
@@ -226,7 +225,8 @@ ISR(TIMER5_COMPA_vect) {
     stepErr.y = curBlock->startStep.y - motorY.posInSteps;
     stepErr.z = curBlock->startStep.z - motorZ.posInSteps;
     stepErr.e = curBlock->startStep.e - motorE.posInSteps;
-    Serial.print(" motorPos - planStartPos ");
+    // Serial.print(" motorPos - planStartPos ");
+    Serial.print(" stepErr ");
     Serial.print(stepErr.x);
     Serial.print(' ');
     Serial.print(stepErr.y);
@@ -391,6 +391,11 @@ void loop() {
                   targetPos.z = gcode.hasZ ? (targetPos.z + gcode.Z) : targetPos.z;
                   targetPos.e = gcode.hasE ? (targetPos.e + gcode.E) : targetPos.e;
                 }
+
+                if(!setting.eAbsoluteMode && gcode.hasE) {
+                  startPos.e = 0;
+                  targetPos.e = gcode.E;
+                }
                 
                 double nominalSpeed = gcode.hasF ? (gcode.F / 60) : (gcode.prevFeedSpeed / 60);
                 double acceleration = gcode.prevAcceleration;
@@ -411,12 +416,13 @@ void loop() {
             case 28:
               Serial.println("G28 - Auto Home");
               // It's necessary to make sure all block is cleared before return home
-            if(Planner::blockQueue._length > 0) {
-              while(!Planner::blockQueue._data[Planner::blockQueue._lastIndex].isDone) {
-                Serial.println("Some blocks are still unhandled, wait 1s ...");
-                delay(1000);
+              if(Planner::blockQueue._length > 0) {
+                while(!Planner::blockQueue._data[Planner::blockQueue._lastIndex].isDone) {
+                  Serial.println("Some blocks are still unhandled, wait 1s ...");
+                  delay(1000);
+                }
               }
-            }
+
               {
                 motorZ.enable();
                 motorZ1.enable();
@@ -462,37 +468,40 @@ void loop() {
                   motorX.posInSteps = 0;
                 }
 
-                if (gcode.hasY)
+              if(gcode.hasY)
+              {
+                motorY.enable();
+                motorY.setDir(-1);
+                // uint32_t speed = 20; // mm/s
+                // uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.y);
+                speed = 20; // mm/s
+                interval = 1000000UL / (speed * setting.stepsPerUnit.y);
+                while (yMin.isTriggered() == false)
                 {
-                  motorY.enable();
-                  motorY.setDir(-1);
-                  uint32_t speed = 20; // mm/s
-                  uint32_t interval = 1000000UL / (speed * setting.stepsPerUnit.y);
-                  while (yMin.isTriggered() == false)
-                  {
-                    motorY.moveOneStep();
-                    delayMicroseconds(interval); // 1600steps/s
-                  }
-                  motorY.setDir(1);
-                  speed = 10;
-                  interval = 1000000UL / (speed * setting.stepsPerUnit.y);
-                  while (yMin.isTriggered())
-                  {
-                    motorY.moveOneStep();
-                    delayMicroseconds(interval); // 80 steps/s
-                  }
-                  for (uint16_t i = 0; i < 1 * setting.stepsPerUnit.y; i++) {
-                    motorY.moveOneStep();
-                    delayMicroseconds(interval);
-                  }
-                  // globalPos.y = 0;
-                  gcode.prevY = 0;
-                  Serial.print("gcode.prevY = ");
-                  Serial.println(gcode.prevY);
-                  motorY.posInSteps = 0;
+                  motorY.moveOneStep();
+                  delayMicroseconds(interval); // 1600steps/s
                 }
+                motorY.setDir(1);
+                speed = 10;
+                interval = 1000000UL / (speed * setting.stepsPerUnit.y);
+                while (yMin.isTriggered())
+                {
+                  motorY.moveOneStep();
+                  delayMicroseconds(interval); // 80 steps/s
+                }
+                for (uint16_t i = 0; i < 1 * setting.stepsPerUnit.y; i++) {
+                  motorY.moveOneStep();
+                  delayMicroseconds(interval);
+                }
+                // globalPos.y = 0;
+                gcode.prevY = 0;
+                Serial.print("gcode.prevY = ");
+                Serial.println(gcode.prevY);
+                motorY.posInSteps = 0;
+              }
 
-              if(gcode.hasZ) {
+              if(gcode.hasZ) 
+              {
                 motorZ.enable();
                 motorZ1.enable();
                 motorZ.setDir(-1);
@@ -533,13 +542,14 @@ void loop() {
           case 90:
             Serial.println("G90 - Absolute positioning");
             setting.absoluteMode = true;
+            setting.eAbsoluteMode = true;
             break;
           
           // G91 - Relative positioning
           case 91:
             Serial.println("G91 - Relative positioning");
             setting.absoluteMode = false;
-
+            setting.eAbsoluteMode = false;
             break;
 
           // G92 - Set Position
@@ -612,6 +622,11 @@ void loop() {
             motorE.disable();
             break;
 
+          // M83 - E Relative
+          case 83:
+            setting.eAbsoluteMode = false;
+            break;
+
           // M104 - Set Hotend Temperature
           case 104:
             hotend.setTargetTemp(gcode.S);
@@ -647,6 +662,7 @@ void loop() {
           case 109:
             Serial.println("M109 - Wait for Hotend Temperature");
             if(gcode.hasS) {
+              hotend.setTargetTemp(gcode.S);
               while(hotend.readTemp() < gcode.S) {
                 Serial.print("hotend temp = ");
                 Serial.println(hotend.readTemp());
@@ -670,6 +686,7 @@ void loop() {
           case 190:
             Serial.println("M190 - Wait for Bed Temperature");
             if(gcode.hasS) {
+              hotbed.setTargetTemp(gcode.S);
               while(hotbed.readTemp() < (gcode.S - 3)) {
                 Serial.print("Hotbed temp = ");
                 Serial.println(hotbed.readTemp());

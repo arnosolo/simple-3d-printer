@@ -1,5 +1,5 @@
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _TYPES_HPP_
+#define _TYPES_HPP_
 #include <Arduino.h>
 
 typedef struct {

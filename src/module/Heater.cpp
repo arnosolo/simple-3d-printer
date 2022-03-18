@@ -1,5 +1,4 @@
-#include "Heater.h"
-// #include "thermistor/thermistor.h"
+#include "Heater.hpp"
 #include "thermistor/thermistor_1.h"
 
 Heater::Heater(uint8_t tempSensorPin, uint8_t heaterPin)
@@ -85,19 +84,38 @@ void Heater::setPid(float p, float i, float d) {
 
 
 uint16_t Heater::calculatePid() {
-  float err = _targetTemp - readTemp();
+  float curTemp = readTemp();
+  // float err = _targetTemp - readTemp();
+  float err = _targetTemp - curTemp;
   pidIntegral += err;
-  if(pidIntegral >= 255) pidIntegral = 255;
-  if(pidIntegral <= -255) pidIntegral = -255;
-  rawPwmDuty =
-      kp * err
-    + ki * pidIntegral
-    + kd * (err - pidPrevErr);
+  if(pidIntegral > 400) pidIntegral = 400;
+  // if(pidIntegral < -400) pidIntegral = -400;
+  // if(pidIntegral <= -255) pidIntegral = -255;
+  if(pidIntegral <= 0) pidIntegral = 0;
+  float p = kp * err;
+  float i = ki * pidIntegral;
+  if(i >= 160) i = 160;
+  float d = kd * (err - pidPrevErr);
+  rawPwmDuty = p + i + d;
+  // rawPwmDuty =
+  //     kp * err
+  //   + ki * pidIntegral
+  //   + kd * (err - pidPrevErr);
   pwmDuty = rawPwmDuty;
   pidPrevErr = err;
-  // Serial.print("pwm duty = ");
-  // Serial.print(pwmDuty);
-  // Serial.print("\n");
+  static uint32_t cnt = 0;
+  if(cnt % 100 == 1) {
+    Serial.print("curTemp ");
+    Serial.print(curTemp);
+    Serial.print(" pid term ");
+    Serial.print(p);
+    Serial.print(' ');
+    Serial.print(i);
+    Serial.print(' ');
+    Serial.print(d);
+    Serial.print("\n");
+  }
+  cnt ++;
   if (pwmDuty >= 255) pwmDuty = 255;
   if (pwmDuty <= 0) pwmDuty = 0;
   

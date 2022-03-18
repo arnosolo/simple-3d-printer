@@ -1,5 +1,5 @@
-#ifndef _QUEUE_H_
-#define _QUEUE_H_
+#ifndef _QUEUE_HPP_
+#define _QUEUE_HPP_
 
 template<class T>
 class Queue {

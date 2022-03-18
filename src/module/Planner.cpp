@@ -1,4 +1,4 @@
-#include "Planner.h"
+#include "Planner.hpp"
 
 Queue<block_t> Planner::blockQueue = Queue<block_t>(BLOCK_BUFFER_SIZE);
 double_xyze_t Planner::startPos = {};
@@ -36,23 +36,23 @@ bool Planner::planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, do
   // int32_xyze_t startStep = {};
   int32_xyze_t targetStep = {};
   int32_xyze_t deltaStep = {};
-  // block.startStep.x = startPos.x * STEPS_PER_UNIT_X;
-  // block.startStep.y = startPos.y * STEPS_PER_UNIT_Y;
-  // block.startStep.z = startPos.z * STEPS_PER_UNIT_Z;
-  // block.startStep.e = startPos.e * STEPS_PER_UNIT_E;
-  // targetStep.x = targetPos.x * STEPS_PER_UNIT_X;
-  // targetStep.y = targetPos.y * STEPS_PER_UNIT_Y;
-  // targetStep.z = targetPos.z * STEPS_PER_UNIT_Z;
-  // targetStep.e = targetPos.e * STEPS_PER_UNIT_E;
+  block.startStep.x = startPos.x * STEPS_PER_UNIT_X;
+  block.startStep.y = startPos.y * STEPS_PER_UNIT_Y;
+  block.startStep.z = startPos.z * STEPS_PER_UNIT_Z;
+  block.startStep.e = startPos.e * STEPS_PER_UNIT_E;
+  targetStep.x = targetPos.x * STEPS_PER_UNIT_X;
+  targetStep.y = targetPos.y * STEPS_PER_UNIT_Y;
+  targetStep.z = targetPos.z * STEPS_PER_UNIT_Z;
+  targetStep.e = targetPos.e * STEPS_PER_UNIT_E;
 
-  block.startStep.x = ((startPos.x * 1000) * STEPS_PER_UNIT_X) / 1000;
-  block.startStep.y = ((startPos.y * 1000) * STEPS_PER_UNIT_Y) / 1000;
-  block.startStep.z = ((startPos.z * 1000) * STEPS_PER_UNIT_Z) / 1000;
-  block.startStep.e = ((startPos.e * 1000) * STEPS_PER_UNIT_E) / 1000;
-  targetStep.x = ((targetPos.x * 1000) * STEPS_PER_UNIT_X) / 1000;
-  targetStep.y = ((targetPos.y * 1000) * STEPS_PER_UNIT_Y) / 1000;
-  targetStep.z = ((targetPos.z * 1000) * STEPS_PER_UNIT_Z) / 1000;
-  targetStep.e = ((targetPos.e * 1000) * STEPS_PER_UNIT_E) / 1000;
+  // block.startStep.x = ((startPos.x * 1000) * STEPS_PER_UNIT_X) / 1000;
+  // block.startStep.y = ((startPos.y * 1000) * STEPS_PER_UNIT_Y) / 1000;
+  // block.startStep.z = ((startPos.z * 1000) * STEPS_PER_UNIT_Z) / 1000;
+  // block.startStep.e = ((startPos.e * 1000) * STEPS_PER_UNIT_E) / 1000;
+  // targetStep.x = ((targetPos.x * 1000) * STEPS_PER_UNIT_X) / 1000;
+  // targetStep.y = ((targetPos.y * 1000) * STEPS_PER_UNIT_Y) / 1000;
+  // targetStep.z = ((targetPos.z * 1000) * STEPS_PER_UNIT_Z) / 1000;
+  // targetStep.e = ((targetPos.e * 1000) * STEPS_PER_UNIT_E) / 1000;
 
   deltaStep.x = targetStep.x - block.startStep.x;
   deltaStep.y = targetStep.y - block.startStep.y;
@@ -180,30 +180,30 @@ bool Planner::planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, do
       - unitVector.z * prevUnitVector.z;
     
     // theta 0° ~ 18°
-    // double maxJunctionSpeed = MINIMUM_PLANNER_SPEED;
-    // if(cosTheta < 0.95) { // theta > 18°
-    // // theta 162° ~ 180°
-    //   maxJunctionSpeed = min(prevBlock->nominalSpeed, block.nominalSpeed);
-    //   if(cosTheta > -0.95) {// theta < 162°
-    //   // theta 18° ~ 162°
-    //   double sinHalfTheta = sqrt(0.5 * (1 - cosTheta));
-    //   maxJunctionSpeed = min(maxJunctionSpeed,
-    //     sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
-    //   // Serial.print(" maxJunctionSpeed= ");
-    //   // Serial.print(sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
-    //   }
-    // }
     double maxJunctionSpeed = MINIMUM_PLANNER_SPEED;
     if(cosTheta < 0.95) { // theta > 18°
     // theta 162° ~ 180°
       maxJunctionSpeed = min(prevBlock->nominalSpeed, block.nominalSpeed);
-      if(cosTheta > -0.94) {// theta < 160°
-      // theta 18° ~ 160°
+      if(cosTheta > -0.95) {// theta < 162°
+      // theta 18° ~ 162°
       double sinHalfTheta = sqrt(0.5 * (1 - cosTheta));
       maxJunctionSpeed = min(maxJunctionSpeed,
         sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
+      // Serial.print(" maxJunctionSpeed= ");
+      // Serial.print(sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
       }
     }
+    // double maxJunctionSpeed = MINIMUM_PLANNER_SPEED;
+    // if(cosTheta < 0.95) { // theta > 18°
+    // // theta 162° ~ 180°
+    //   maxJunctionSpeed = min(prevBlock->nominalSpeed, block.nominalSpeed);
+    //   if(cosTheta > -0.94) {// theta < 160°
+    //   // theta 18° ~ 160°
+    //   double sinHalfTheta = sqrt(0.5 * (1 - cosTheta));
+    //   maxJunctionSpeed = min(maxJunctionSpeed,
+    //     sqrt(block.acceleration * junctionDeviation * sinHalfTheta / (1.0 - sinHalfTheta)));
+    //   }
+    // }
     
     double maxAllowSpeed = getMaxAllowSpeed(
       MINIMUM_PLANNER_SPEED, block.acceleration, block.distance);
@@ -231,8 +231,10 @@ bool Planner::planBufferLine(double_xyze_t startPos, double_xyze_t targetPos, do
 
   Serial.print("Enqueue block");
   Serial.print(block.id);
+
   block.needRecalculate = true;
   blockQueue.enqueue(block);
+
   // Serial.print(" eSteps ");
   // Serial.print(deltaStep.e);
   Serial.print(" queLen ");
@@ -321,8 +323,8 @@ void Planner::calculateTrapezoid(block_t* block) {
   }
   sei(); // allow interrupts
 
-  // Serial.print("Plan block");
-  // Serial.print(block->id);
+  Serial.print("Plan block");
+  Serial.print(block->id);
   // Serial.print(" deltaPos ");
   // Serial.print(block->deltaPos.x);
   // Serial.print(", ");
@@ -339,7 +341,7 @@ void Planner::calculateTrapezoid(block_t* block) {
   // Serial.print(block->steps.z);
   // Serial.print(", ");
   // Serial.print(block->steps.e);
-  // Serial.print(" distance=");
+  // Serial.print(" distance ");
   // Serial.print(block->distance);
   // Serial.print("\n");
   // Serial.print(" acc 0 ->");
@@ -354,15 +356,15 @@ void Planner::calculateTrapezoid(block_t* block) {
   // Serial.print(block->nominalRate);
   // Serial.print(" -> ");
   // Serial.print(block->exitRate);
-  // Serial.print(" Speed ");
-  // Serial.print(block->entrySpeed);
-  // Serial.print(" -> ");
-  // Serial.print(block->nominalSpeed);
-  // Serial.print(" -> ");
-  // Serial.print(block->exitSpeed);
+  Serial.print(" Speed ");
+  Serial.print(block->entrySpeed);
+  Serial.print(" -> ");
+  Serial.print(block->nominalSpeed);
+  Serial.print(" -> ");
+  Serial.print(block->exitSpeed);
   // Serial.print(" stepsPerMm=");
   // Serial.print(block->stepsPerMm);
-  // Serial.print("\n");
+  Serial.print("\n");
 }
 
 double Planner::calculateAccelerateDistance(double startRate, double targetRate, double accRate) {

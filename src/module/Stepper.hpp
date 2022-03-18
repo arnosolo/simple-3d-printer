@@ -1,7 +1,7 @@
-#ifndef _STEPPER_H_
-#define _STEPPER_H_
+#ifndef _STEPPER_HPP_
+#define _STEPPER_HPP_
 #include <Arduino.h>
-#include "Planner.h"
+#include "Planner.hpp"
 
 // Int8 - [-128 : 127]
 // Int16 - [-32768 : 32767]

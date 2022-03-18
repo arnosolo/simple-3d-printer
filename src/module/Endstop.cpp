@@ -1,4 +1,4 @@
-#include "Endstop.h"
+#include "Endstop.hpp"
 
 Endstop::Endstop(uint8_t pin) {
   _pin = pin;

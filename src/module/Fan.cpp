@@ -1,4 +1,4 @@
-#include "Fan.h"
+#include "Fan.hpp"
 
 Fan::Fan(uint8_t fanPin) {
   _pin = fanPin;

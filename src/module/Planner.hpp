@@ -1,14 +1,13 @@
-#ifndef _PLANNER_H_
-#define _PLANNER_H_
+#ifndef _PLANNER_HPP_
+#define _PLANNER_HPP_
 #include <Arduino.h>
-#include "config/config.h"
-#include "Utils/Queue.h"
-#include "Utils/types.h"
-#include "config/Setting.h"
-#include "gcode/Gcode.h"
+#include "config/config.hpp"
+#include "Utils/Queue.hpp"
+#include "Utils/types.hpp"
+#include "module/Setting.hpp"
+#include "gcode/Gcode.hpp"
 
-class Planner
-{
+class Planner {
 private:
 public:
   static Queue<block_t> blockQueue;
@@ -32,8 +31,7 @@ public:
   static double getMaxAllowSpeed(double startSpeed, double acceleration, double distance);
   static uint32_t getMaxAllowRate(uint32_t startRate, uint32_t accelerateRate, uint32_t steps);
   static double getMaxAllowSpeedSq(double startSpeedSq, double acceleration, double distance);
-  static double calculateAccelerateDistance(
-      double startRate, double targetRate, double accRate);
+  static double calculateAccelerateDistance(double startRate, double targetRate, double accRate);
   static uint32_t calculateAccSteps(uint32_t startRate, uint32_t targetRate, uint32_t accRate);
   static double intersectionDistance(double entryRate, double exitRate, double accRate, double totalSteps);
   static uint32_t intersectionSteps(uint32_t entryRate, uint32_t exitRate, uint32_t accRate, uint32_t totalSteps);

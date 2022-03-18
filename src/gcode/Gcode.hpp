@@ -1,5 +1,5 @@
-#ifndef _GCODE_H_
-#define _GCODE_H_
+#ifndef _GCODE_HPP_
+#define _GCODE_HPP_
 #include <Arduino.h>
 
 class Gcode

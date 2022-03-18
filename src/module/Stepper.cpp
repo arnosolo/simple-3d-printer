@@ -1,6 +1,4 @@
-#include "Stepper.h"
-// #include "pgmspace.h.h"
-// #include "pins_arduino.h"
+#include "Stepper.hpp"
 
 /**
  * @brief  Stepper motor init
