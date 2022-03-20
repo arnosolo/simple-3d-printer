@@ -2,9 +2,7 @@
 
 ## How 3d printer works?
 
-​	Hello, I am Arno. Last year, I bought my first 3d printer `Anycubic Vyer`. To my surprise, it's actually quite easy to use. It only takes me 30 min to setup. After that, I got a new hobby, which is to squat in front of the printer and watch the parts being knitted stitch by stitch. Wondering how does it works. 
-
-​	So I decide to assemble a printer and write a firmware.
+​	Hello, I am Arno. Today we are going to find out how 3d printer works by writing a firmware. [code link](https://github.com/arnosolo/simple_3d_printer) 
 
 ![image-20220309193844931](README.assets/image-20220309193844931.png)
 
@@ -12,7 +10,7 @@ Read in other languages: [简体中文](./docs/cn/浅析3d打印机原理.md)
 
 
 
-#### Develop Platform
+#### Develop platform
 
 - Framework
 
@@ -44,9 +42,34 @@ Read in other languages: [简体中文](./docs/cn/浅析3d打印机原理.md)
 
 #### Parse gcode
 
-*G1 X2.4 Y5.6* => `Gcode::parse()` => `gcode` object 
+In this section, we should implement the `parse` function of `Gcode` class which is able to convert a gcode string like `G1 X2.4 Y5.6` into a `gcode object`.
 
-In this section, we should implement the `parse` function of `Gcode` class. If you try to use '\n' to split string like me, you need be careful that some gcode string might end with "\r\n"
+- Most used gcode
+
+  ```
+  G1 F200 X2 Y4 ; move to (2,4,0) and set feedrate as 200mm/min
+  G28 X0 Y0 ; move X/Y to min endstops
+  M104 S200 ; set hotend temp as 200℃
+  ```
+
+- `gcode object` example
+
+  ```cpp
+  gcode.cmdtype = 'G';
+  gcode.cmdnum = 1;
+  gcode.X = 2.4;
+  gcode.Y = 5.6;
+  gcode.hasX = true;
+  gcode.hasY = true;
+  ```
+
+  Notice that if you try to use '\n' to split string like me, you need be careful that some gcode string might end with "\r\n"
+
+
+
+#### SD card
+
+In general, we need to configure SPI to use SD card. But we are using mega2560, we can use the [SD Library for Arduino](https://github.com/arduino-libraries/SD). The only thing we need to do is find which pin is the `CS` (chip select) pin in schematic and call `SD.begin(csPin)` function in `setup` function.
 
 
 
@@ -145,7 +168,7 @@ Now we know how to control stepper motor through `A4988`. But how long does the 
 
 
 
-##### Endstop
+#### Endstop
 
 ![image-20220312064107893](README.assets/image-20220312064107893.png)
 
@@ -158,7 +181,7 @@ Now we know how to control stepper motor through `A4988`. But how long does the 
 
 
 
-#### Path planning
+#### Motion control
 
 ##### How to advance
 
@@ -196,19 +219,50 @@ Do not use **float** to calculate the number of steps directly, because it might
 
 
 
-##### Speed control
-
-For example, if we want set speed as 1000steps/s, then every `step event` takes 1ms, which means every 1ms an interrupt should be generated.
-
-
-
 ##### Multiple motion commands
 
 We should push a `block` which contains how many steps every motor should advance in a `queue`, and take it out when needed.
 
+- `block`
+
+  ```cpp
+  typedef struct {
+    volatile bool isBusy;
+    volatile bool isReady;
+    volatile bool isDone;
+    bool needRecalculate;
+    uint32_t id;
+  
+    double distance; // mm
+    double stepsPerMm; // steps/mm
+    int8_xyze_t dir; // -1 or 1
+    int32_xyze_t startStep; // mm
+    uint32_xyze_t steps; // steps
+    uint32_t stepEventCount; // steps
+    uint32_t stepEventCompleted; // steps
+    uint32_t accelerateUntil;
+    uint32_t decelerateAfter;
+    
+    double entrySpeed; // mm/s
+    double exitSpeed; // mm/s
+    double nominalSpeed; // mm/s
+    uint32_t entryRate; // steps/s
+    uint32_t exitRate; // steps/s
+    uint32_t nominalRate; // steps/s
+    uint32_t speedRate; // steps/s
+  
+    double acceleration; // steps/sec^2
+    uint32_t accelerateRate; // steps/sec^2
+  } block_t;
+  ```
+
+  
+
+#### Speed control
+
+For example, if we want set speed as 1000steps/s, then every `step event` takes 1ms, which means every 1ms an interrupt should be generated.
 
 
-#### Speed connection
 
 ##### Trapezoidal acceleration
 

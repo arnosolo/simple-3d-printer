@@ -45,3 +45,6 @@
 #define MAX_FEEDRATE_E 25 // mm/s
 
 #define MIN_STEPS_PER_SEGMENT 6
+
+/******** Gcode ********/
+#define GCODE_STR_QUEUE_SIZE 5

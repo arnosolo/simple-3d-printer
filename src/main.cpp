@@ -13,7 +13,6 @@
 #include "Utils/types.hpp"
 #include "Utils/Array.hpp"
 
-Queue<String> gcodeStrQueue = Queue<String>(5);
 block_t initBlock = {};
 block_t* curBlock = nullptr;
 Setting setting;
@@ -224,22 +223,22 @@ void loop() {
   }
   
   // Read Gcode from serial
-  if (Serial.available() && !gcodeStrQueue.isFull()) {
+  if (Serial.available() && !Gcode::strQueue.isFull()) {
     String str = Serial.readStringUntil('\n');
     Serial.print("Get a cmd from host: ");
     Serial.println(str);
-    gcodeStrQueue.enqueue(str);
+    Gcode::strQueue.enqueue(str);
   }
 
   // Read Gcode from SD card
-  if (sdCard.sdFileSelected && !gcodeStrQueue.isFull()) {
+  if (sdCard.sdFileSelected && !Gcode::strQueue.isFull()) {
     String str = sdCard.selectedFile.readStringUntil('\n');
     // Serial.print("Read gcode from SD card ");
     // Serial.println(str);
     while(str.charAt(0) == ';'){
       str = sdCard.selectedFile.readStringUntil('\n');
     }
-    gcodeStrQueue.enqueue(str);
+    Gcode::strQueue.enqueue(str);
     if(sdCard.selectedFile.position() >= sdCard.selectedFile.size()) {
       sdCard.sdFileSelected = false;
       sdCard.selectedFile.close();
@@ -248,8 +247,8 @@ void loop() {
   }
 
   // Parse Gcode
-  if (!gcodeStrQueue.isEmpty() && !Planner::blockQueue.isFull()){
-    Gcode gcode = Gcode::parse(gcodeStrQueue.dequeue());
+  if (!Gcode::strQueue.isEmpty() && !Planner::blockQueue.isFull()){
+    Gcode gcode = Gcode::parse(Gcode::strQueue.dequeue());
     static double_xyze_t startPos = {};
     static double_xyze_t targetPos = {};
     static double_xyze_t prevStartPos = {};

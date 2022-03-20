@@ -6,6 +6,7 @@ double Gcode::prevX = 0; // mm
 double Gcode::prevY = 0; // mm
 double Gcode::prevZ = 0; // mm
 double Gcode::prevE = 0; // mm
+Queue<String> Gcode::strQueue = Queue<String>(GCODE_STR_QUEUE_SIZE);
 
 Gcode::Gcode(){
 }

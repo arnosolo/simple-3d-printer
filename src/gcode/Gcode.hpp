@@ -1,6 +1,8 @@
 #ifndef _GCODE_HPP_
 #define _GCODE_HPP_
 #include <Arduino.h>
+#include "Utils/Queue.hpp"
+#include "config/config.hpp"
 
 class Gcode
 {
@@ -34,14 +36,15 @@ public:
   static double prevY; // mm
   static double prevZ; // mm
   static double prevE; // mm
+  static Queue<String> strQueue;
 
   Gcode();
   Gcode(String cmdStr);
-  //~Gcode();
+  ~Gcode();
   void setGcodeArg(char flag, String num);
 
   static Gcode parse(String cmdStr);
-  // Set Hotend Temperature
+
   static void M104(Gcode* gcode);
 };
 
