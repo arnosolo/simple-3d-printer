@@ -40,7 +40,7 @@ public:
 
   Gcode();
   Gcode(String cmdStr);
-  ~Gcode();
+  // ~Gcode();
   void setGcodeArg(char flag, String num);
 
   static Gcode parse(String cmdStr);

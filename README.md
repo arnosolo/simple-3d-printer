@@ -12,9 +12,7 @@ Read in other languages: [简体中文](./docs/cn/浅析3d打印机原理.md)
 
 #### Develop platform
 
-- Framework
-
-  - Arduino (should install vscode and platformio first)
+##### Hardware
 
 - MCU
 
@@ -36,6 +34,38 @@ Read in other languages: [简体中文](./docs/cn/浅析3d打印机原理.md)
   - Big fish i3
 
     ![image-20220309194813387](README.assets/image-20220309194813387.png)
+
+##### Software
+
+1. Download [vscode](https://code.visualstudio.com/)
+
+2. Install addon platformio
+
+3. Open platformio tag, create new project, choose Board as mega2560, choose Framework as Arduino.
+
+4. Now we write some test code in `src/main.cpp`
+
+   ```cpp
+   // src/main.cpp
+   #include <Arduino.h>
+   
+   void setup() {
+       Serial.begin(115200);
+   }
+   
+   void loop() {
+       Serial.println("Hello from Mega2560.");
+       delay(1000);
+   }
+   ```
+
+5. Connect 3D printing motherboard with compute, click the ➡ button at the bottom of `vscode`. Then `platformio` will compile and upload the test code above into 3D printing motherboard
+
+   ![image-20220325104440980](README.assets/image-20220325104440980.png)
+
+6. Open any Serial assistant you prefer, connect the motherboard, if you found `Hello from Mega2560.` is printed, then you are all set.
+
+
 
 
 

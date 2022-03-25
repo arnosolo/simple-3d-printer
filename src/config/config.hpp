@@ -24,9 +24,9 @@
 #define HOTEND_KI 0.36
 #define HOTEND_KD 800
 
-#define HOTBED_KP 10
-#define HOTBED_KI 0.2
-#define HOTBED_KD 0
+#define HOTBED_KP 15
+#define HOTBED_KI 0.3
+#define HOTBED_KD 100
 
 /******** Planner ********/
 #define BLOCK_BUFFER_SIZE 20
