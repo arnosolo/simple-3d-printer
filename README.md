@@ -256,36 +256,17 @@ We should push a `block` which contains how many steps every motor should advanc
 - `block`
 
   ```cpp
-  typedef struct {
-    volatile bool isBusy;
-    volatile bool isReady;
-    volatile bool isDone;
-    bool needRecalculate;
-    uint32_t id;
-  
-    double distance; // mm
-    double stepsPerMm; // steps/mm
-    int8_xyze_t dir; // -1 or 1
-    int32_xyze_t startStep; // mm
-    uint32_xyze_t steps; // steps
-    uint32_t stepEventCount; // steps
-    uint32_t stepEventCompleted; // steps
-    uint32_t accelerateUntil;
-    uint32_t decelerateAfter;
-    
-    double entrySpeed; // mm/s
-    double exitSpeed; // mm/s
-    double nominalSpeed; // mm/s
-    uint32_t entryRate; // steps/s
-    uint32_t exitRate; // steps/s
-    uint32_t nominalRate; // steps/s
-    uint32_t speedRate; // steps/s
-  
-    double acceleration; // steps/sec^2
-    uint32_t accelerateRate; // steps/sec^2
-  } block_t;
+  block.dir.x = 1
+  block.steps.x = 37
+  ...
+  block.stepEventCount = 37
+  block.accelerateUntil = 6
+  block.decelerateAfter = 37
+  block.entryRate = 1808
+  block.nominalRate = 2001
+  block.exitRate = 2001
   ```
-
+  
   
 
 #### Speed control
@@ -311,6 +292,8 @@ In order to prevent the speed and coherence between each block. We need to calcu
 ![image-20220312064937037](README.assets/image-20220312064937037.png)
 
 
+
+I hope this article is useful or at least interesting for you. If so, can you please consider [donating me 1 dollar](https://www.paypal.me/arnosolo1)? so I can live a little longer. 
 
 
 
