@@ -269,5 +269,3 @@ Specifically, a block can be divided into an acceleration segment, a constant sp
 In order to prevent the speed and coherence between each block. We need to calculate the entry speed and exit speed of each block. The estimation method is given below. Noted that the arc in the figure is only used to estimate the connection speed. The hotend does not go through this arc in practice.
 
 ![image-20220312064937037](README.assets/image-20220312064937037.png)
-
-I hope this article is useful or at least interesting for you. If so, can you please consider [donating me 1 dollar](https://www.paypal.me/arnosolo1)? so I can live a little longer. 
