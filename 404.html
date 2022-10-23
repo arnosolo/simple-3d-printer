@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="generator" content="VuePress 2.0.0-beta.51">
+    <style>
+      :root {
+        --c-bg: #fff;
+      }
+      html.dark {
+        --c-bg: #22272e;
+      }
+      html, body {
+        background-color: var(--c-bg);
+      }
+    </style>
+    <script>
+      const userMode = localStorage.getItem('vuepress-color-scheme');
+			const systemDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+			if (userMode === 'dark' || (userMode !== 'light' && systemDarkMode)) {
+				document.documentElement.classList.toggle('dark', true);
+			}
+    </script>
+    <link rel="icon" href="/simple-3d-printer/logo.svg"><title>Simply 3d printer</title><meta name="description" content="Find out how 3d printer works by writing a firmware">
+    <link rel="modulepreload" href="/simple-3d-printer/assets/app.3e33cde9.js"><link rel="modulepreload" href="/simple-3d-printer/assets/404.html.88d7534d.js"><link rel="modulepreload" href="/simple-3d-printer/assets/404.html.d2dc3323.js"><link rel="prefetch" href="/simple-3d-printer/assets/index.html.8e79c826.js"><link rel="prefetch" href="/simple-3d-printer/assets/index.html.fc811998.js"><link rel="prefetch" href="/simple-3d-printer/assets/index.html.eec06f06.js"><link rel="prefetch" href="/simple-3d-printer/assets/index.html.aad130c2.js">
+    <link rel="stylesheet" href="/simple-3d-printer/assets/style.a0733f6a.css">
+  </head>
+  <body>
+    <div id="app"><!--[--><div class="theme-container"><main class="page"><div class="theme-default-content"><h1>404</h1><blockquote>How did we get here?</blockquote><a href="/simple-3d-printer/" class="">Take me home</a></div></main></div><!----><!--]--></div>
+    <script type="module" src="/simple-3d-printer/assets/app.3e33cde9.js" defer></script>
+  </body>
+</html>
