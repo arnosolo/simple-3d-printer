@@ -1,1 +1,1 @@
-[Click here](https://arnosolo.github.io/simple_3d_printer/) to checkout documents
+[Click here](https://arnosolo.github.io/simple-3d-printer/) to checkout documents
