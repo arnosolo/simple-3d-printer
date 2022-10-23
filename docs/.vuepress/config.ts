@@ -6,7 +6,7 @@ export default defineUserConfig({
   base: `/simple-3d-printer/`,
   head: [
     [
-      'link', { rel: 'icon', href: '/simple-3d-printer/favicon.ico'}
+      'link', { rel: 'icon', href: '/simple-3d-printer/logo.svg'}
     ]
   ],
   theme: defaultTheme({
